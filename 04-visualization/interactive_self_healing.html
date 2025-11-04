@@ -3,9 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AutoMesh - Self-Healing Network Visualization</title>
+    <title>AutoMesh - Self-Healing Network</title>
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
         * {
             margin: 0;
             padding: 0;
@@ -13,445 +15,515 @@
         }
 
         body {
-            font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 20px;
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            height: 100vh;
             color: #e2e8f0;
+            overflow: hidden;
             position: relative;
-            overflow-x: hidden;
         }
 
         body::before {
             content: '';
             position: fixed;
+            top: 0;
+            left: 0;
             width: 100%;
             height: 100%;
-            background: radial-gradient(circle at 20% 50%, rgba(124, 58, 237, 0.15) 0%, transparent 50%),
-                        radial-gradient(circle at 80% 80%, rgba(59, 130, 246, 0.15) 0%, transparent 50%);
+            background: 
+                radial-gradient(circle at 15% 20%, rgba(139, 92, 246, 0.12) 0%, transparent 40%),
+                radial-gradient(circle at 85% 80%, rgba(59, 130, 246, 0.12) 0%, transparent 40%);
             pointer-events: none;
         }
 
-        .container {
-            background: rgba(30, 41, 59, 0.8);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(148, 163, 184, 0.2);
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4),
-                        0 0 100px rgba(124, 58, 237, 0.1);
-            padding: 40px;
-            max-width: 1400px;
-            width: 100%;
+        .app-container {
+            height: 100vh;
+            display: grid;
+            grid-template-rows: auto 1fr auto;
+            gap: 1rem;
+            padding: 1rem;
             position: relative;
             z-index: 1;
         }
 
+        /* Glass Card */
+        .glass-card {
+            background: rgba(30, 41, 59, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+
+        /* Header */
         .header {
             text-align: center;
-            margin-bottom: 30px;
-            position: relative;
+            padding: 0.75rem;
         }
 
-        h1 {
-            background: linear-gradient(135deg, #818cf8 0%, #c084fc 50%, #e879f9 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin-bottom: 10px;
-            font-size: 3em;
-            font-weight: 800;
-            letter-spacing: -1px;
-            animation: fadeInDown 0.8s ease-out;
+        .header h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            color: #fff;
+            margin-bottom: 0.25rem;
         }
 
-        @keyframes fadeInDown {
-            from {
-                opacity: 0;
-                transform: translateY(-20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .subtitle {
+        .header p {
+            font-size: 0.875rem;
             color: #94a3b8;
-            margin-bottom: 20px;
-            font-size: 1.1em;
             font-weight: 400;
-            animation: fadeIn 1s ease-out 0.2s both;
         }
 
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
+        /* Main Content Grid */
+        .main-content {
+            display: grid;
+            grid-template-columns: 240px 1fr 240px;
+            gap: 1rem;
+            min-height: 0;
         }
 
-        .network-wrapper {
-            position: relative;
-            margin-bottom: 30px;
-            border-radius: 15px;
-            overflow: hidden;
-            box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.1),
-                        0 10px 30px rgba(0, 0, 0, 0.3);
-        }
-
-        #network {
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-            display: block;
-        }
-
-        .controls {
+        /* Sidebar Panels */
+        .sidebar-panel {
             display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
-            justify-content: center;
-            margin-bottom: 30px;
+            flex-direction: column;
+            gap: 1rem;
+            min-height: 0;
+        }
+
+        .panel {
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel h2 {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #94a3b8;
+            margin-bottom: 0.75rem;
+        }
+
+        /* Controls */
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
         }
 
         button {
-            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-            color: white;
-            border: none;
-            padding: 14px 28px;
-            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #e2e8f0;
+            padding: 0.625rem 0.875rem;
+            border-radius: 8px;
+            font-size: 0.8125rem;
+            font-weight: 500;
             cursor: pointer;
-            font-size: 15px;
-            font-weight: 600;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3),
-                        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            justify-content: center;
+            white-space: nowrap;
             position: relative;
-            overflow: hidden;
         }
 
-        button::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-            transition: left 0.5s;
+        button:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(255, 255, 255, 0.25);
+            transform: translateY(-1px);
         }
 
-        button:hover::before {
-            left: 100%;
+        button:active:not(:disabled) {
+            transform: translateY(0);
         }
 
-        button:hover {
-            transform: translateY(-3px) scale(1.02);
-            box-shadow: 0 8px 20px rgba(99, 102, 241, 0.4),
-                        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
 
-        button:active {
-            transform: translateY(-1px) scale(0.98);
+        button.primary {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+        button.primary:hover:not(:disabled) {
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
         }
 
         button.danger {
-            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3),
-                        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            background: rgba(239, 68, 68, 0.15);
+            border-color: rgba(239, 68, 68, 0.4);
+            color: #fca5a5;
         }
 
-        button.danger:hover {
-            box-shadow: 0 8px 20px rgba(239, 68, 68, 0.4),
-                        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        button.danger:hover:not(:disabled) {
+            background: rgba(239, 68, 68, 0.25);
         }
 
         button.success {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3),
-                        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            background: rgba(34, 197, 94, 0.15);
+            border-color: rgba(34, 197, 94, 0.4);
+            color: #86efac;
         }
 
-        button.success:hover {
-            box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4),
-                        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        button.success:hover:not(:disabled) {
+            background: rgba(34, 197, 94, 0.25);
         }
 
-        .status {
-            background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
-            border: 1px solid rgba(139, 92, 246, 0.3);
-            padding: 25px;
-            border-radius: 15px;
-            margin-bottom: 25px;
-            backdrop-filter: blur(10px);
+        button svg {
+            flex-shrink: 0;
         }
 
-        .status h3 {
-            color: #c084fc;
-            margin-bottom: 20px;
-            font-size: 1.4em;
-            font-weight: 700;
+        button .spinner {
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
         }
 
-        .status-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 20px;
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Stats */
+        .stats-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 0.625rem;
         }
 
         .stat-item {
-            background: rgba(15, 23, 42, 0.5);
-            padding: 20px;
-            border-radius: 12px;
-            border: 1px solid rgba(148, 163, 184, 0.1);
-            transition: all 0.3s ease;
+            padding: 0.75rem;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            transition: all 0.2s;
         }
 
         .stat-item:hover {
-            transform: translateY(-2px);
-            border-color: rgba(139, 92, 246, 0.3);
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+            background: rgba(255, 255, 255, 0.07);
+            border-color: rgba(255, 255, 255, 0.15);
         }
 
         .stat-label {
-            font-size: 0.85em;
-            color: #94a3b8;
-            margin-bottom: 8px;
+            font-size: 0.6875rem;
+            font-weight: 500;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-            font-weight: 600;
+            letter-spacing: 0.05em;
+            color: #94a3b8;
+            margin-bottom: 0.375rem;
         }
 
         .stat-value {
-            font-size: 2em;
-            font-weight: 800;
+            font-size: 1.5rem;
+            font-weight: 700;
             color: #e2e8f0;
-            transition: all 0.3s ease;
         }
 
         .stat-value.good {
-            color: #34d399;
-            text-shadow: 0 0 20px rgba(52, 211, 153, 0.3);
+            color: #4ade80;
         }
 
         .stat-value.bad {
             color: #f87171;
-            text-shadow: 0 0 20px rgba(248, 113, 113, 0.3);
         }
 
-        .log {
-            background: rgba(15, 23, 42, 0.8);
-            border: 1px solid rgba(148, 163, 184, 0.1);
-            color: #e2e8f0;
-            padding: 20px;
-            border-radius: 15px;
-            max-height: 250px;
-            overflow-y: auto;
-            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
-            font-size: 13px;
-            line-height: 1.6;
-            box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.3);
+        .stat-value.warning {
+            color: #fbbf24;
         }
 
-        .log::-webkit-scrollbar {
-            width: 8px;
+        /* Network Status Indicator */
+        .network-status {
+            padding: 0.75rem;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            text-align: center;
+            margin-top: 0.5rem;
         }
 
-        .log::-webkit-scrollbar-track {
-            background: rgba(15, 23, 42, 0.5);
-            border-radius: 4px;
+        .network-status.healthy {
+            border-color: rgba(34, 197, 94, 0.4);
+            background: rgba(34, 197, 94, 0.1);
         }
 
-        .log::-webkit-scrollbar-thumb {
-            background: rgba(139, 92, 246, 0.5);
-            border-radius: 4px;
+        .network-status.degraded {
+            border-color: rgba(251, 191, 36, 0.4);
+            background: rgba(251, 191, 36, 0.1);
         }
 
-        .log::-webkit-scrollbar-thumb:hover {
-            background: rgba(139, 92, 246, 0.7);
-        }
-
-        .log-entry {
-            padding: 8px 12px;
-            margin: 4px 0;
-            border-radius: 6px;
-            background: rgba(30, 41, 59, 0.5);
-            border-left: 3px solid transparent;
-            animation: slideIn 0.3s ease-out;
-        }
-
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateX(-10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
-        }
-
-        .log-entry.error {
-            color: #fca5a5;
-            border-left-color: #ef4444;
+        .network-status.critical {
+            border-color: rgba(239, 68, 68, 0.4);
             background: rgba(239, 68, 68, 0.1);
         }
 
-        .log-entry.success {
-            color: #86efac;
-            border-left-color: #10b981;
-            background: rgba(16, 185, 129, 0.1);
+        .network-status.healing {
+            border-color: rgba(59, 130, 246, 0.4);
+            background: rgba(59, 130, 246, 0.1);
         }
 
-        .log-entry.info {
-            color: #7dd3fc;
-            border-left-color: #3b82f6;
-            background: rgba(59, 130, 246, 0.1);
+        .status-text {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .status-text.healthy {
+            color: #4ade80;
+        }
+
+        .status-text.degraded {
+            color: #fbbf24;
+        }
+
+        .status-text.critical {
+            color: #f87171;
+        }
+
+        .status-text.healing {
+            color: #60a5fa;
+        }
+
+        /* Network Panel */
+        .network-panel {
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            position: relative;
+        }
+
+        /* Processing Overlay */
+        .processing-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            z-index: 10;
+        }
+
+        .processing-overlay.visible {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .processing-spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-top-color: #8b5cf6;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 1rem;
+        }
+
+        .processing-text {
+            color: #e2e8f0;
+            font-size: 0.875rem;
+            font-weight: 500;
         }
 
         .legend {
             display: flex;
-            gap: 25px;
-            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 0.75rem;
             flex-wrap: wrap;
-            padding: 20px;
-            background: rgba(15, 23, 42, 0.5);
-            border-radius: 12px;
-            margin-bottom: 25px;
-            border: 1px solid rgba(148, 163, 184, 0.1);
+            justify-content: center;
         }
 
         .legend-item {
             display: flex;
             align-items: center;
-            gap: 10px;
-            padding: 8px 16px;
-            background: rgba(30, 41, 59, 0.5);
-            border-radius: 8px;
-            transition: all 0.3s ease;
+            gap: 0.375rem;
+            font-size: 0.75rem;
+            color: #cbd5e1;
+            padding: 0.375rem 0.625rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 6px;
         }
 
-        .legend-item:hover {
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            border: 2px solid currentColor;
+            flex-shrink: 0;
+        }
+
+        .legend-line {
+            width: 20px;
+            height: 2px;
+            flex-shrink: 0;
+        }
+
+        #network {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.15);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            cursor: grab;
+        }
+
+        #network.grabbing {
+            cursor: grabbing;
+        }
+
+        .zoom-controls {
+            position: absolute;
+            bottom: 1rem;
+            right: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            z-index: 5;
+        }
+
+        .zoom-btn {
+            width: 36px;
+            height: 36px;
             background: rgba(30, 41, 59, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 8px;
+            color: #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            transition: all 0.2s ease;
+        }
+
+        .zoom-btn:hover {
+            background: rgba(30, 41, 59, 0.95);
+            border-color: rgba(255, 255, 255, 0.3);
             transform: scale(1.05);
         }
 
-        .legend-color {
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            border: 2px solid rgba(226, 232, 240, 0.5);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        .zoom-btn:active {
+            transform: scale(0.95);
         }
 
-        .legend-item span {
-            color: #cbd5e1;
-            font-size: 0.9em;
-            font-weight: 500;
+        .zoom-info {
+            position: absolute;
+            bottom: 1rem;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.75rem;
+            color: #94a3b8;
+            background: rgba(30, 41, 59, 0.8);
+            padding: 0.375rem 0.75rem;
+            border-radius: 6px;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 5;
         }
 
-        .link {
-            stroke: #475569;
-            stroke-opacity: 0.4;
-            stroke-width: 2px;
-            transition: all 0.3s ease;
+        /* Log Panel */
+        .log-panel {
+            padding: 0.75rem;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            max-height: 200px;
         }
 
-        .link.active-path {
-            stroke: #34d399;
-            stroke-width: 4px;
-            stroke-opacity: 1;
-            filter: drop-shadow(0 0 4px rgba(52, 211, 153, 0.6));
-            animation: pathPulse 2s ease-in-out infinite;
+        .log-header {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #94a3b8;
+            margin-bottom: 0.5rem;
         }
 
-        .link.failed {
-            stroke: #ef4444;
-            stroke-dasharray: 5, 5;
-            stroke-opacity: 0.3;
-            animation: dash 20s linear infinite;
+        .log-container {
+            flex: 1;
+            overflow-y: auto;
+            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+            font-size: 0.75rem;
+            line-height: 1.5;
         }
 
-        @keyframes pathPulse {
-            0%, 100% {
-                stroke-width: 4px;
-                stroke-opacity: 1;
-            }
-            50% {
-                stroke-width: 6px;
-                stroke-opacity: 0.8;
-            }
+        .log-container::-webkit-scrollbar {
+            width: 5px;
         }
 
-        @keyframes dash {
-            to {
-                stroke-dashoffset: -200;
-            }
+        .log-container::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 3px;
         }
 
-        .node circle {
-            stroke: rgba(226, 232, 240, 0.8);
-            stroke-width: 3px;
-            cursor: grab;
-            transition: all 0.3s ease;
-            filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.4));
+        .log-container::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 3px;
         }
 
-        .node:hover circle {
-            stroke-width: 5px;
-            filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.6));
+        .log-entry {
+            padding: 0.375rem 0.625rem;
+            margin-bottom: 0.375rem;
+            border-radius: 6px;
+            border-left: 2px solid transparent;
+            background: rgba(255, 255, 255, 0.03);
         }
 
-        .node.dragging circle {
-            cursor: grabbing;
-            stroke-width: 6px;
+        .log-entry.info {
+            border-left-color: #3b82f6;
+            color: #93c5fd;
         }
 
-        .node.failed circle {
-            fill: #ef4444 !important;
-            opacity: 0.3;
-            animation: failPulse 1s ease-in-out;
+        .log-entry.success {
+            border-left-color: #22c55e;
+            color: #86efac;
         }
 
-        @keyframes failPulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.2); }
+        .log-entry.error {
+            border-left-color: #ef4444;
+            color: #fca5a5;
         }
 
-        .node.source circle {
-            fill: #3b82f6;
-            stroke: #1e40af;
-            filter: drop-shadow(0 0 12px rgba(59, 130, 246, 0.6));
+        .log-entry.warning {
+            border-left-color: #f59e0b;
+            color: #fbbf24;
         }
 
-        .node.target circle {
-            fill: #f59e0b;
-            stroke: #b45309;
-            filter: drop-shadow(0 0 12px rgba(245, 158, 11, 0.6));
-        }
-
-        .node text {
-            font-size: 12px;
-            font-weight: 700;
-            pointer-events: none;
-            text-anchor: middle;
-            fill: #fff;
-            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
-        }
-
+        /* Tooltip */
         .tooltip {
             position: absolute;
             background: rgba(15, 23, 42, 0.95);
-            border: 1px solid rgba(139, 92, 246, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.2);
             border-radius: 8px;
-            padding: 12px 16px;
+            padding: 0.625rem 0.875rem;
             pointer-events: none;
             opacity: 0;
             transition: opacity 0.2s;
-            font-size: 13px;
-            color: #e2e8f0;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-            backdrop-filter: blur(10px);
+            font-size: 0.75rem;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
             z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
         }
 
         .tooltip.visible {
@@ -459,14 +531,99 @@
         }
 
         .tooltip-title {
-            font-weight: 700;
-            color: #c084fc;
-            margin-bottom: 6px;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+            color: #fff;
         }
 
         .tooltip-detail {
-            color: #94a3b8;
-            font-size: 12px;
+            color: #cbd5e1;
+            font-size: 0.6875rem;
+            line-height: 1.4;
+        }
+
+        /* SVG Styles */
+        .link {
+            stroke: rgba(255, 255, 255, 0.2);
+            stroke-width: 1.5px;
+            transition: all 0.3s ease;
+        }
+
+        .link.active-path {
+            stroke: #4ade80;
+            stroke-width: 3px;
+            filter: drop-shadow(0 0 6px rgba(74, 222, 128, 0.6));
+        }
+
+        .link.failed {
+            stroke: #ef4444;
+            stroke-dasharray: 4, 4;
+            opacity: 0.3;
+        }
+
+        .node circle {
+            stroke: rgba(255, 255, 255, 0.4);
+            stroke-width: 2.5px;
+            cursor: grab;
+            transition: all 0.2s ease;
+        }
+
+        .node:hover circle {
+            stroke-width: 3.5px;
+            filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.4));
+        }
+
+        .node.dragging circle {
+            cursor: grabbing;
+        }
+
+        .node.failed circle {
+            fill: #7f1d1d !important;
+            opacity: 0.4;
+        }
+
+        .node.source circle {
+            fill: #3b82f6;
+        }
+
+        .node.target circle {
+            fill: #f59e0b;
+        }
+
+        .node text {
+            font-size: 11px;
+            font-weight: 600;
+            text-anchor: middle;
+            fill: #fff;
+            pointer-events: none;
+            user-select: none;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Responsive */
+        @media (max-width: 1400px) {
+            .main-content {
+                grid-template-columns: 200px 1fr 200px;
+            }
+        }
+
+        @media (max-width: 1200px) {
+            .app-container {
+                grid-template-rows: auto 1fr;
+            }
+
+            .main-content {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto 1fr auto;
+            }
+
+            .sidebar-panel {
+                flex-direction: row;
+            }
+
+            .panel {
+                flex: 1;
+            }
         }
     </style>
 </head>
@@ -476,75 +633,153 @@
         <div class="tooltip-detail"></div>
     </div>
 
-    <div class="container">
-        <div class="header">
-            <h1>🛰️ AutoMesh Network</h1>
-            <p class="subtitle">Self-Healing Mesh Network Visualization</p>
+    <div class="app-container">
+        <div class="glass-card header">
+            <h1>AutoMesh Network</h1>
+            <p>Self-Healing Mesh Network using Dijkstra's Algorithm</p>
         </div>
 
-        <div class="legend">
-            <div class="legend-item">
-                <div class="legend-color" style="background: #3b82f6;"></div>
-                <span>Source Node</span>
+        <div class="main-content">
+            <!-- Left Sidebar: Controls -->
+            <div class="sidebar-panel">
+                <div class="glass-card panel">
+                    <h2>Controls</h2>
+                    <div class="control-group">
+                        <button class="primary" onclick="findPath()" id="btnFindPath">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <path d="m21 21-4.35-4.35"></path>
+                            </svg>
+                            Find Route
+                        </button>
+                        <button class="danger" onclick="failRandomNode()" id="btnFailNode">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="15" y1="9" x2="9" y2="15"></line>
+                                <line x1="9" y1="9" x2="15" y2="15"></line>
+                            </svg>
+                            Fail Node
+                        </button>
+                        <button class="danger" onclick="failRandomLink()" id="btnFailLink">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>
+                            </svg>
+                            Break Link
+                        </button>
+                        <button class="success" onclick="healNetwork()" id="btnHeal">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            Heal Network
+                        </button>
+                        <button onclick="resetNetwork()" id="btnReset">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="23 4 23 10 17 10"></polyline>
+                                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                            </svg>
+                            Reset
+                        </button>
+                    </div>
+
+                    <!-- Network Status -->
+                    <div class="network-status healthy" id="networkStatus">
+                        <div class="status-text healthy" id="statusText">NETWORK HEALTHY</div>
+                    </div>
+                </div>
+
+                <div class="glass-card panel log-panel">
+                    <div class="log-header">Activity Log</div>
+                    <div class="log-container" id="log">
+                        <div class="log-entry info">Network initialized</div>
+                    </div>
+                </div>
             </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background: #f59e0b;"></div>
-                <span>Target Node</span>
+
+            <!-- Center: Network Visualization -->
+            <div class="glass-card network-panel">
+                <div class="processing-overlay" id="processingOverlay">
+                    <div class="processing-spinner"></div>
+                    <div class="processing-text" id="processingText">Processing...</div>
+                </div>
+
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-dot" style="color: #3b82f6; background: #3b82f6;"></div>
+                        <span>Source</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot" style="color: #f59e0b; background: #f59e0b;"></div>
+                        <span>Target</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot" style="color: #10b981; background: #10b981;"></div>
+                        <span>Active</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot" style="color: #ef4444; background: rgba(127, 29, 29, 0.5);"></div>
+                        <span>Failed</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-line" style="background: #4ade80; box-shadow: 0 0 6px rgba(74, 222, 128, 0.5);"></div>
+                        <span>Path</span>
+                    </div>
+                </div>
+                <svg id="network" width="100%" height="100%"></svg>
+                
+                <!-- Zoom Controls -->
+                <div class="zoom-controls">
+                    <div class="zoom-btn" onclick="zoomIn()" title="Zoom In">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                    </div>
+                    <div class="zoom-btn" onclick="zoomOut()" title="Zoom Out">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                    </div>
+                    <div class="zoom-btn" onclick="resetZoom()" title="Reset View">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- Zoom Info -->
+                <div class="zoom-info">
+                    💡 Pan: Drag canvas | Zoom: Mouse wheel or controls
+                </div>
             </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background: #10b981;"></div>
-                <span>Active Node</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background: #ef4444; opacity: 0.4;"></div>
-                <span>Failed Node</span>
-            </div>
-            <div class="legend-item">
-                <div style="width: 30px; height: 3px; background: #34d399; box-shadow: 0 0 8px rgba(52, 211, 153, 0.5);"></div>
-                <span>Active Path</span>
+
+            <!-- Right Sidebar: Statistics -->
+            <div class="sidebar-panel">
+                <div class="glass-card panel">
+                    <h2>Statistics</h2>
+                    <div class="stats-grid">
+                <div class="stat-item">
+                            <div class="stat-label">Active Nodes</div>
+                            <div class="stat-value good" id="activeNodes">0</div>
+                </div>
+                <div class="stat-item">
+                            <div class="stat-label">Failed Nodes</div>
+                            <div class="stat-value bad" id="failedNodes">0</div>
+                </div>
+                <div class="stat-item">
+                            <div class="stat-label">Active Links</div>
+                            <div class="stat-value good" id="activeLinks">0</div>
+                </div>
+                <div class="stat-item">
+                            <div class="stat-label">Path Latency</div>
+                            <div class="stat-value" id="pathLatency">-</div>
+                </div>
+                <div class="stat-item">
+                            <div class="stat-label">Health</div>
+                            <div class="stat-value good" id="networkHealth">100%</div>
+                </div>
             </div>
         </div>
-
-        <div class="network-wrapper">
-            <svg id="network" width="1340" height="650"></svg>
-        </div>
-
-        <div class="controls">
-            <button onclick="findPath()">🔍 Find Route</button>
-            <button class="danger" onclick="failRandomNode()">❌ Fail Random Node</button>
-            <button class="danger" onclick="failRandomLink()">⚡ Break Random Link</button>
-            <button class="success" onclick="healNetwork()">🔄 Heal Network</button>
-            <button onclick="resetNetwork()">🔄 Reset Network</button>
-        </div>
-
-        <div class="status">
-            <h3>📊 Network Status</h3>
-            <div class="status-grid">
-                <div class="stat-item">
-                    <span class="stat-label">Active Nodes</span>
-                    <span class="stat-value good" id="activeNodes">0</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">Failed Nodes</span>
-                    <span class="stat-value bad" id="failedNodes">0</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">Active Links</span>
-                    <span class="stat-value good" id="activeLinks">0</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">Path Latency</span>
-                    <span class="stat-value" id="pathLatency">-</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">Network Health</span>
-                    <span class="stat-value good" id="networkHealth">100%</span>
-                </div>
             </div>
-        </div>
-
-        <div class="log" id="log">
-            <div class="log-entry info">🚀 Network initialized - Click 'Find Route' to start</div>
         </div>
     </div>
 
@@ -557,6 +792,11 @@
         let currentPath = [];
         let sourceNode = 0;
         let targetNode = 9;
+        let isProcessing = false;
+        let zoomBehavior = null;
+        let currentZoom = 1;
+        let svg = null;
+        let g = null;
 
         // Initialize network
         function initNetwork() {
@@ -566,13 +806,17 @@
             failedLinks = new Set();
             currentPath = [];
 
-            // Create 10 nodes
+            // Create 10 nodes with better initial positioning
+            const margin = 80;
+            const areaWidth = 1000;
+            const areaHeight = 500;
+            
             for (let i = 0; i < 10; i++) {
                 nodes.push({
                     id: i,
                     name: `N${i}`,
-                    x: Math.random() * 1200 + 70,
-                    y: Math.random() * 550 + 50
+                    x: margin + Math.random() * areaWidth,
+                    y: margin + Math.random() * areaHeight
                 });
             }
 
@@ -605,7 +849,76 @@
 
             renderNetwork();
             updateStatus();
+            updateNetworkStatus();
             addLog('Network initialized with ' + nodes.length + ' nodes and ' + links.length + ' links', 'info');
+        }
+
+        // Show processing overlay
+        function showProcessing(message) {
+            isProcessing = true;
+            document.getElementById('processingText').textContent = message;
+            document.getElementById('processingOverlay').classList.add('visible');
+            disableControls();
+        }
+
+        // Hide processing overlay
+        function hideProcessing() {
+            isProcessing = false;
+            document.getElementById('processingOverlay').classList.remove('visible');
+            enableControls();
+        }
+
+        // Disable all control buttons
+        function disableControls() {
+            document.getElementById('btnFindPath').disabled = true;
+            document.getElementById('btnFailNode').disabled = true;
+            document.getElementById('btnFailLink').disabled = true;
+            document.getElementById('btnHeal').disabled = true;
+            document.getElementById('btnReset').disabled = true;
+        }
+
+        // Enable all control buttons
+        function enableControls() {
+            document.getElementById('btnFindPath').disabled = false;
+            document.getElementById('btnFailNode').disabled = false;
+            document.getElementById('btnFailLink').disabled = false;
+            document.getElementById('btnHeal').disabled = false;
+            document.getElementById('btnReset').disabled = false;
+        }
+
+        // Update network status indicator
+        function updateNetworkStatus() {
+            const statusEl = document.getElementById('networkStatus');
+            const statusTextEl = document.getElementById('statusText');
+            
+            const health = Math.round(((nodes.length - failedNodes.size) / nodes.length) * 100);
+            const hasPath = currentPath.length > 0;
+            
+            // Remove all status classes
+            statusEl.classList.remove('healthy', 'degraded', 'critical', 'healing');
+            statusTextEl.classList.remove('healthy', 'degraded', 'critical', 'healing');
+            
+            if (isProcessing) {
+                statusEl.classList.add('healing');
+                statusTextEl.classList.add('healing');
+                statusTextEl.textContent = 'SELF-HEALING...';
+            } else if (!hasPath) {
+                statusEl.classList.add('critical');
+                statusTextEl.classList.add('critical');
+                statusTextEl.textContent = 'NO PATH AVAILABLE';
+            } else if (health >= 80) {
+                statusEl.classList.add('healthy');
+                statusTextEl.classList.add('healthy');
+                statusTextEl.textContent = 'NETWORK HEALTHY';
+            } else if (health >= 50) {
+                statusEl.classList.add('degraded');
+                statusTextEl.classList.add('degraded');
+                statusTextEl.textContent = 'NETWORK DEGRADED';
+            } else {
+                statusEl.classList.add('critical');
+                statusTextEl.classList.add('critical');
+                statusTextEl.textContent = 'CRITICAL STATE';
+            }
         }
 
         // Dijkstra's algorithm for shortest path
@@ -674,47 +987,79 @@
             return { path, distance: distances[end] };
         }
 
-        // Find and display path
-        function findPath() {
+        // Find and display path (triggers self-healing if network is degraded)
+        async function findPath() {
+            if (isProcessing) return;
+            
+            const hasFailures = failedNodes.size > 0 || failedLinks.size > 0;
+            
+            if (hasFailures) {
+                showProcessing('Self-healing: Finding alternate route...');
+                addLog('🔄 Self-healing triggered: Computing alternate path', 'info');
+            } else {
+                showProcessing('Computing shortest path...');
+            }
+            
+            // Simulate processing time
+            await sleep(800);
+            
             const result = dijkstra(sourceNode, targetNode);
             
             if (result.path === null) {
-                addLog(`❌ No path found from N${sourceNode} to N${targetNode}`, 'error');
+                addLog(`❌ No path available from N${sourceNode} to N${targetNode}`, 'error');
+                addLog('⚠️ Network is partitioned - cannot establish route', 'warning');
+                addLog('💡 Use "Heal Network" to restore failed components', 'info');
                 currentPath = [];
             } else {
                 currentPath = result.path;
                 const pathStr = result.path.map(id => `N${id}`).join(' → ');
-                addLog(`✅ Route found: ${pathStr} (${result.distance}ms)`, 'success');
+                if (hasFailures) {
+                    addLog(`✓ Self-healing successful! Alternate route: ${pathStr}`, 'success');
+                    addLog(`📊 Route latency: ${result.distance}ms`, 'info');
+                } else {
+                    addLog(`✓ Route computed: ${pathStr} (${result.distance}ms)`, 'success');
+                }
             }
             
             renderNetwork();
             updateStatus();
+            updateNetworkStatus();
+            hideProcessing();
         }
 
         // Fail random node
-        function failRandomNode() {
+        async function failRandomNode() {
+            if (isProcessing) return;
+            
             const activeNodes = nodes.filter(n => !failedNodes.has(n.id) && n.id !== sourceNode && n.id !== targetNode);
             if (activeNodes.length === 0) {
-                addLog('⚠️ No more nodes to fail', 'info');
+                addLog('⚠️ No more nodes available to fail', 'warning');
                 return;
             }
 
             const node = activeNodes[Math.floor(Math.random() * activeNodes.length)];
             failedNodes.add(node.id);
-            addLog(`💥 Node N${node.id} failed!`, 'error');
+            addLog(`❌ Node N${node.id} has failed`, 'error');
+            addLog(`💡 Use "Find Route" to trigger self-healing`, 'info');
             
-            // Auto-heal: find new path
-            setTimeout(() => {
-                addLog('🔄 Attempting self-healing...', 'info');
-                findPath();
-            }, 500);
+            // Clear current path if it uses the failed node
+            if (currentPath.includes(node.id)) {
+                currentPath = [];
+                addLog('⚠️ Current path is broken', 'warning');
+            }
+            
+            renderNetwork();
+            updateStatus();
+            updateNetworkStatus();
         }
 
         // Fail random link
-        function failRandomLink() {
+        async function failRandomLink() {
+            if (isProcessing) return;
+            
             const activeLinks = links.filter(l => !failedLinks.has(l.id));
             if (activeLinks.length === 0) {
-                addLog('⚠️ No more links to break', 'info');
+                addLog('⚠️ No more links available to break', 'warning');
                 return;
             }
 
@@ -722,59 +1067,134 @@
             failedLinks.add(link.id);
             const sourceId = link.source.id !== undefined ? link.source.id : link.source;
             const targetId = link.target.id !== undefined ? link.target.id : link.target;
-            addLog(`⚡ Link N${sourceId} ↔ N${targetId} failed!`, 'error');
+            addLog(`⚡ Link N${sourceId}-N${targetId} has failed`, 'error');
+            addLog(`💡 Use "Find Route" to trigger self-healing`, 'info');
             
-            // Auto-heal: find new path
-            setTimeout(() => {
-                addLog('🔄 Attempting self-healing...', 'info');
-                findPath();
-            }, 500);
+            // Clear current path if it uses the failed link
+            if (currentPath.length > 1) {
+                for (let i = 0; i < currentPath.length - 1; i++) {
+                    const s = currentPath[i];
+                    const t = currentPath[i + 1];
+                    if ((sourceId === s && targetId === t) || (sourceId === t && targetId === s)) {
+                        currentPath = [];
+                        addLog('⚠️ Current path is broken', 'warning');
+                        break;
+                    }
+                }
+            }
+            
+            renderNetwork();
+            updateStatus();
+            updateNetworkStatus();
         }
 
-        // Heal network
-        function healNetwork() {
+        // Manual heal network - restores all failed components
+        async function healNetwork() {
+            if (isProcessing) return;
+            
             if (failedNodes.size === 0 && failedLinks.size === 0) {
-                addLog('✅ Network is already healthy', 'success');
+                addLog('✓ Network is already healthy', 'success');
                 return;
             }
+
+            showProcessing('Restoring failed components...');
 
             const healedNodes = failedNodes.size;
             const healedLinks = failedLinks.size;
             
+            addLog(`🔧 Manual healing: Restoring ${healedNodes} nodes and ${healedLinks} links`, 'info');
+            
+            await sleep(1200);
+            
             failedNodes.clear();
             failedLinks.clear();
             
-            addLog(`🎉 Healed ${healedNodes} nodes and ${healedLinks} links`, 'success');
-            findPath();
+            addLog(`✓ Components restored successfully`, 'success');
+            
+            // Recalculate optimal path after healing
+            await sleep(500);
+            const result = dijkstra(sourceNode, targetNode);
+            if (result.path !== null) {
+                currentPath = result.path;
+                const pathStr = result.path.map(id => `N${id}`).join(' → ');
+                addLog(`✓ Optimal route computed: ${pathStr} (${result.distance}ms)`, 'success');
+            }
+            
+            renderNetwork();
+            updateStatus();
+            updateNetworkStatus();
+            hideProcessing();
         }
 
         // Reset network
-        function resetNetwork() {
-            addLog('🔄 Resetting network...', 'info');
+        async function resetNetwork() {
+            if (isProcessing) return;
+            
+            showProcessing('Resetting network...');
+            addLog('🔄 Network reset initiated', 'info');
+            
+            await sleep(1000);
+            
             initNetwork();
-            setTimeout(findPath, 300);
+            
+            await sleep(500);
+            await findPath();
+            
+            // Fit to view after reset
+            setTimeout(fitToView, 300);
+        }
+
+        // Utility function for async delays
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // Zoom functions
+        function zoomIn() {
+            if (svg && zoomBehavior) {
+                svg.transition().duration(300).call(zoomBehavior.scaleBy, 1.3);
+            }
+        }
+
+        function zoomOut() {
+            if (svg && zoomBehavior) {
+                svg.transition().duration(300).call(zoomBehavior.scaleBy, 0.7);
+            }
+        }
+
+        function resetZoom() {
+            fitToView();  // Use fit to view instead of just resetting to identity
         }
 
         // Render network with D3
         function renderNetwork() {
-            const svg = d3.select('#network');
+            svg = d3.select('#network');
+            const width = svg.node().getBoundingClientRect().width;
+            const height = svg.node().getBoundingClientRect().height;
+            
             svg.selectAll('*').remove();
 
-            // Define arrow marker
-            svg.append('defs').append('marker')
-                .attr('id', 'arrowhead')
-                .attr('viewBox', '-0 -5 10 10')
-                .attr('refX', 20)
-                .attr('refY', 0)
-                .attr('orient', 'auto')
-                .attr('markerWidth', 8)
-                .attr('markerHeight', 8)
-                .append('svg:path')
-                .attr('d', 'M 0,-5 L 10 ,0 L 0,5')
-                .attr('fill', '#999');
+            // Create a group for all elements (this will be transformed by zoom)
+            g = svg.append('g');
+
+            // Setup zoom behavior
+            zoomBehavior = d3.zoom()
+                .scaleExtent([0.3, 3])  // Min and max zoom levels
+                .on('zoom', (event) => {
+                    g.attr('transform', event.transform);
+                    currentZoom = event.transform.k;
+                })
+                .on('start', () => {
+                    svg.node().classList.add('grabbing');
+                })
+                .on('end', () => {
+                    svg.node().classList.remove('grabbing');
+                });
+
+            svg.call(zoomBehavior);
 
             // Draw links
-            const linkElements = svg.selectAll('.link')
+            const linkElements = g.selectAll('.link')
                 .data(links)
                 .enter()
                 .append('line')
@@ -813,14 +1233,20 @@
                     return nodes[targetId].y;
                 });
 
-            // Drag behavior
+            // Drag behavior (separate from pan/zoom)
             const drag = d3.drag()
                 .on('start', function(event, d) {
+                    event.sourceEvent.stopPropagation();  // Prevent pan when dragging nodes
                     d3.select(this).classed('dragging', true);
                 })
                 .on('drag', function(event, d) {
-                    d.x = event.x;
-                    d.y = event.y;
+                    event.sourceEvent.stopPropagation();  // Prevent pan when dragging nodes
+                    
+                    // Account for current zoom level
+                    const scale = currentZoom;
+                    d.x += event.dx / scale;
+                    d.y += event.dy / scale;
+                    
                     d3.select(this).attr('transform', `translate(${d.x},${d.y})`);
                     
                     // Update connected links
@@ -837,11 +1263,12 @@
                     });
                 })
                 .on('end', function(event, d) {
+                    event.sourceEvent.stopPropagation();  // Prevent pan when dragging nodes
                     d3.select(this).classed('dragging', false);
                 });
 
             // Draw nodes
-            const nodeElements = svg.selectAll('.node')
+            const nodeElements = g.selectAll('.node')
                 .data(nodes)
                 .enter()
                 .append('g')
@@ -856,7 +1283,7 @@
                 .call(drag);
 
             nodeElements.append('circle')
-                .attr('r', 15)
+                .attr('r', 14)
                 .attr('fill', d => {
                     if (d.id === sourceNode) return '#3b82f6';
                     if (d.id === targetNode) return '#f59e0b';
@@ -865,8 +1292,7 @@
 
             nodeElements.append('text')
                 .attr('dy', 4)
-                .text(d => d.name)
-                .attr('fill', '#fff');
+                .text(d => d.name);
 
             // Tooltip interactions
             const tooltip = d3.select('#tooltip');
@@ -932,13 +1358,20 @@
                 const result = dijkstra(sourceNode, targetNode);
                 document.getElementById('pathLatency').textContent = result.distance + 'ms';
             } else {
-                document.getElementById('pathLatency').textContent = '-';
+                document.getElementById('pathLatency').textContent = 'N/A';
             }
 
             const health = Math.round(((nodes.length - failedNodes.size) / nodes.length) * 100);
             const healthEl = document.getElementById('networkHealth');
             healthEl.textContent = health + '%';
-            healthEl.className = 'stat-value ' + (health > 70 ? 'good' : 'bad');
+            
+            if (health >= 80) {
+                healthEl.className = 'stat-value good';
+            } else if (health >= 50) {
+                healthEl.className = 'stat-value warning';
+            } else {
+                healthEl.className = 'stat-value bad';
+            }
         }
 
         // Add log entry
@@ -956,9 +1389,70 @@
             }
         }
 
+        // Fit network to view
+        function fitToView() {
+            if (!svg || !g || nodes.length === 0) return;
+
+            const svgNode = svg.node();
+            const width = svgNode.getBoundingClientRect().width;
+            const height = svgNode.getBoundingClientRect().height;
+
+            // Calculate bounding box of all nodes
+            let minX = Infinity, minY = Infinity;
+            let maxX = -Infinity, maxY = -Infinity;
+
+            nodes.forEach(node => {
+                minX = Math.min(minX, node.x);
+                minY = Math.min(minY, node.y);
+                maxX = Math.max(maxX, node.x);
+                maxY = Math.max(maxY, node.y);
+            });
+
+            const bbox = {
+                x: minX - 50,
+                y: minY - 50,
+                width: maxX - minX + 100,
+                height: maxY - minY + 100
+            };
+
+            // Calculate scale to fit
+            const scale = Math.min(
+                width / bbox.width,
+                height / bbox.height,
+                1.5  // Max zoom
+            ) * 0.9;  // Add padding
+
+            // Calculate translation to center
+            const tx = width / 2 - (bbox.x + bbox.width / 2) * scale;
+            const ty = height / 2 - (bbox.y + bbox.height / 2) * scale;
+
+            // Apply transform
+            svg.transition().duration(750).call(
+                zoomBehavior.transform,
+                d3.zoomIdentity.translate(tx, ty).scale(scale)
+            );
+        }
+
         // Initialize on load
         initNetwork();
-        setTimeout(findPath, 500);
+        setTimeout(() => {
+            findPath();
+            setTimeout(fitToView, 500);  // Fit to view after initial render
+        }, 400);
+
+        // Handle window resize
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                const currentTransform = d3.zoomTransform(svg.node());
+                renderNetwork();
+                // Restore zoom state after resize
+                if (currentTransform) {
+                    svg.call(zoomBehavior.transform, currentTransform);
+                }
+            }, 250);
+        });
     </script>
 </body>
 </html>
