@@ -10,6 +10,7 @@ This guide covers:
 - Routing and pathfinding algorithms
 - Network visualization techniques
 - Self-healing mechanisms and fault recovery
+- Custom network building with full control
 
 ## 📚 Learning Path
 
@@ -40,6 +41,29 @@ Fault detection and automatic recovery.
 - `complete_self_healing.py` - Full simulation with failure scenarios
 - Practice: Testing different failure patterns
 
+### 6. Custom Network Builder (06-customization/)
+Build networks with full control over nodes and links.
+- `custom_network_builder.py` - Create custom topologies with your own node names and connections
+- `interactive_custom_network.html` - Interactive web interface for building and visualizing custom networks
+- Practice: Design networks for specific scenarios, model real-world topologies
+
+### 7. Packet Tracer Export (07-packet-tracer-export/)
+Export your networks to Cisco Packet Tracer format for simulation.
+- `pkt_converter.py` - Convert networks to .pkt format
+- `export_example.py` - Examples and integration guide
+- Practice: Export networks and test in Cisco Packet Tracer
+
+### 8. Packet Tracer Simulator (08-packet-tracer-simulator/) ⭐ **NEW**
+Full-featured web-based network simulator with auto-healing capabilities.
+- `index.html` - Interactive Cisco Packet Tracer-like interface
+- Real-time packet tracing and visualization
+- Auto-healing mesh network with failure detection
+- Drag-and-drop device placement
+- Multiple device types (Router, Switch, PC, Server, Cloud, Firewall)
+- Live packet animation through the network
+- Network export/import functionality
+- Practice: Build networks, send packets, simulate failures, watch auto-healing in action!
+
 ## 🚀 Getting Started
 
 ```bash
@@ -64,7 +88,7 @@ After completing these examples, I'll have the foundation to build a complete Au
 - Automatically designs optimal network topologies
 - Visualizes networks in real-time
 - Recovers from node and link failures
-- Exports to simulation tools (Mininet/NS-3)
+- Exports to simulation tools (Cisco Packet Tracer, Mininet/NS-3)
 
 ## 📖 Additional Resources
 

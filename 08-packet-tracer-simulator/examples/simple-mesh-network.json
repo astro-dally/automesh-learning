@@ -1,0 +1,86 @@
+{
+  "name": "Simple Mesh Network - 4 Routers",
+  "devices": [
+    {
+      "id": "router-1",
+      "type": "router",
+      "x": 300,
+      "y": 200,
+      "ip": "192.168.1.1",
+      "mac": "00:1a:2b:3c:4d:01",
+      "status": "online"
+    },
+    {
+      "id": "router-2",
+      "type": "router",
+      "x": 600,
+      "y": 200,
+      "ip": "192.168.1.2",
+      "mac": "00:1a:2b:3c:4d:02",
+      "status": "online"
+    },
+    {
+      "id": "router-3",
+      "type": "router",
+      "x": 300,
+      "y": 400,
+      "ip": "192.168.1.3",
+      "mac": "00:1a:2b:3c:4d:03",
+      "status": "online"
+    },
+    {
+      "id": "router-4",
+      "type": "router",
+      "x": 600,
+      "y": 400,
+      "ip": "192.168.1.4",
+      "mac": "00:1a:2b:3c:4d:04",
+      "status": "online"
+    }
+  ],
+  "connections": [
+    {
+      "source": "router-1",
+      "target": "router-2",
+      "type": "fiber",
+      "bandwidth": 10000,
+      "latency": 5.2
+    },
+    {
+      "source": "router-1",
+      "target": "router-3",
+      "type": "fiber",
+      "bandwidth": 10000,
+      "latency": 4.8
+    },
+    {
+      "source": "router-2",
+      "target": "router-4",
+      "type": "fiber",
+      "bandwidth": 10000,
+      "latency": 5.1
+    },
+    {
+      "source": "router-3",
+      "target": "router-4",
+      "type": "fiber",
+      "bandwidth": 10000,
+      "latency": 4.9
+    },
+    {
+      "source": "router-1",
+      "target": "router-4",
+      "type": "fiber",
+      "bandwidth": 10000,
+      "latency": 8.5
+    },
+    {
+      "source": "router-2",
+      "target": "router-3",
+      "type": "fiber",
+      "bandwidth": 10000,
+      "latency": 8.3
+    }
+  ]
+}
+

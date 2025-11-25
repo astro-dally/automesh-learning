@@ -1,0 +1,19 @@
+{
+  "name": "2 Node Network",
+  "nodes": [
+    {
+      "name": "router-1"
+    },
+    {
+      "name": "Server-1"
+    }
+  ],
+  "links": [
+    {
+      "from": "Server-1",
+      "to": "router-1",
+      "latency": 10,
+      "bandwidth": 1000
+    }
+  ]
+}

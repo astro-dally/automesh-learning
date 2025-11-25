@@ -1,0 +1,3520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AutoMesh - Custom Network Builder</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            min-height: 100vh;
+            color: #e2e8f0;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 15% 20%, rgba(139, 92, 246, 0.12) 0%, transparent 40%),
+                radial-gradient(circle at 85% 80%, rgba(59, 130, 246, 0.12) 0%, transparent 40%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .app-container {
+            display: grid;
+            grid-template-columns: 360px 1fr;
+            gap: 1rem;
+            padding: 1rem;
+            position: relative;
+            z-index: 1;
+            min-height: 100vh;
+        }
+
+        /* Glass Card */
+        .glass-card {
+            background: rgba(30, 41, 59, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            padding: 1.5rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .glass-card:hover {
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Sidebar */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            overflow-y: auto;
+            max-height: calc(100vh - 2rem);
+        }
+
+        .panel {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .panel h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 0.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .help-icon {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: rgba(59, 130, 246, 0.2);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            color: #60a5fa;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: help;
+            transition: all 0.2s;
+        }
+
+        .help-icon:hover {
+            background: rgba(59, 130, 246, 0.3);
+            transform: scale(1.1);
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            position: relative;
+        }
+
+        .form-group label {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #cbd5e1;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .form-group input,
+        .form-group select {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 0.75rem;
+            color: #e2e8f0;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            background: rgba(15, 23, 42, 0.8);
+        }
+
+        .form-group input::placeholder {
+            color: #64748b;
+        }
+
+        .form-group input:invalid {
+            border-color: #ef4444;
+        }
+
+        .input-hint {
+            font-size: 0.75rem;
+            color: #64748b;
+            margin-top: -0.25rem;
+        }
+
+        .btn {
+            padding: 0.75rem 1rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .btn:active::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-secondary {
+            background: rgba(100, 116, 139, 0.3);
+            color: #e2e8f0;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(100, 116, 139, 0.5);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        /* Network Info */
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+            font-size: 0.875rem;
+        }
+
+        .info-item {
+            background: rgba(15, 23, 42, 0.4);
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.2s;
+        }
+
+        .info-item:hover {
+            background: rgba(15, 23, 42, 0.6);
+            transform: translateY(-2px);
+            border-color: rgba(59, 130, 246, 0.3);
+        }
+
+        .info-item.connected {
+            border-left: 3px solid #10b981;
+        }
+
+        .info-item.disconnected {
+            border-left: 3px solid #ef4444;
+        }
+
+        .info-label {
+            color: #94a3b8;
+            font-size: 0.75rem;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .info-value {
+            color: #fff;
+            font-weight: 700;
+            font-size: 1.5rem;
+        }
+
+        /* Node/Link Lists */
+        .list-container {
+            max-height: 250px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .list-item {
+            background: rgba(15, 23, 42, 0.4);
+            padding: 0.875rem;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+
+        .list-item:hover {
+            background: rgba(15, 23, 42, 0.6);
+            border-color: rgba(255, 255, 255, 0.1);
+            transform: translateX(4px);
+        }
+
+        .list-item.node-item {
+            border-left: 3px solid #10b981;
+        }
+
+        .list-item.link-item {
+            border-left: 3px solid #3b82f6;
+        }
+
+        .list-item-name {
+            color: #e2e8f0;
+            font-weight: 500;
+            flex: 1;
+        }
+
+        .list-item-remove {
+            background: rgba(239, 68, 68, 0.2);
+            color: #fca5a5;
+            border: none;
+            border-radius: 6px;
+            padding: 0.375rem 0.75rem;
+            cursor: pointer;
+            font-size: 0.75rem;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+
+        .list-item-remove:hover {
+            background: rgba(239, 68, 68, 0.4);
+            transform: scale(1.05);
+        }
+
+        /* Network Visualization */
+        .network-panel {
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            min-height: calc(100vh - 2rem);
+        }
+
+        .network-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .network-header h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .header-btn {
+            padding: 0.5rem;
+            background: rgba(100, 116, 139, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            color: #cbd5e1;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .header-btn:hover {
+            background: rgba(100, 116, 139, 0.4);
+            color: #fff;
+        }
+
+        .legend {
+            display: flex;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+            margin-bottom: 1rem;
+            padding: 1rem;
+            background: rgba(15, 23, 42, 0.3);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.75rem;
+            color: #cbd5e1;
+        }
+
+        .legend-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .legend-line {
+            width: 24px;
+            height: 3px;
+            border-radius: 2px;
+        }
+
+        #network {
+            flex: 1;
+            min-height: 500px;
+            background: 
+                linear-gradient(rgba(59, 130, 246, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(59, 130, 246, 0.03) 1px, transparent 1px),
+                rgba(15, 23, 42, 0.3);
+            background-size: 50px 50px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            cursor: default;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #network::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at center, transparent 0%, rgba(15, 23, 42, 0.4) 100%);
+            pointer-events: none;
+        }
+
+        #network:active {
+            cursor: default;
+        }
+
+        /* Network node styles */
+        .network-node {
+            cursor: move;
+        }
+
+        .network-node circle[r="20"] {
+            transition: stroke-width 0.2s, filter 0.2s;
+        }
+
+        .network-node circle[r="20"]:hover {
+            filter: brightness(1.2);
+        }
+
+        .network-link {
+            transition: all 0.2s;
+        }
+
+        .network-link:hover {
+            stroke-width: 3 !important;
+            opacity: 0.8 !important;
+        }
+
+        .failed-node {
+            pointer-events: none;
+            cursor: not-allowed;
+        }
+
+        .failed-link {
+            pointer-events: none;
+            animation: pulse-failed 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse-failed {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Route Testing */
+        .route-panel {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .route-result {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: rgba(15, 23, 42, 0.4);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .route-path {
+            color: #4ade80;
+            font-weight: 600;
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+            word-break: break-all;
+        }
+
+        .route-latency {
+            color: #94a3b8;
+            font-size: 0.75rem;
+            margin-top: 0.25rem;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 2rem 1rem;
+            color: #64748b;
+        }
+
+        .empty-state-icon {
+            width: 48px;
+            height: 48px;
+            margin: 0 auto 1rem;
+            opacity: 0.5;
+            color: #64748b;
+        }
+
+        .empty-state h3 {
+            color: #94a3b8;
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .empty-state p {
+            font-size: 0.75rem;
+            color: #64748b;
+            line-height: 1.5;
+        }
+
+        /* Toast Notifications */
+        .toast-container {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .toast {
+            background: rgba(15, 23, 42, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 1rem 1.25rem;
+            min-width: 300px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            animation: toastSlideIn 0.3s ease-out;
+            backdrop-filter: blur(20px);
+        }
+
+        @keyframes toastSlideIn {
+            from {
+                opacity: 0;
+                transform: translateX(100%);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .toast.success {
+            border-left: 4px solid #10b981;
+        }
+
+        .toast.error {
+            border-left: 4px solid #ef4444;
+        }
+
+        .toast.info {
+            border-left: 4px solid #3b82f6;
+        }
+
+        .toast-icon {
+            width: 20px;
+            height: 20px;
+            flex-shrink: 0;
+        }
+
+        .toast-content {
+            flex: 1;
+        }
+
+        .toast-title {
+            font-weight: 600;
+            color: #fff;
+            font-size: 0.875rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .toast-message {
+            color: #cbd5e1;
+            font-size: 0.75rem;
+        }
+
+        /* Welcome Banner */
+        .welcome-banner {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(139, 92, 246, 0.2) 100%);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .welcome-content h3 {
+            color: #fff;
+            font-size: 0.875rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .welcome-content p {
+            color: #cbd5e1;
+            font-size: 0.75rem;
+        }
+
+        .welcome-close {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 4px;
+            color: #cbd5e1;
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .welcome-close:hover {
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.3);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(100, 116, 139, 0.5);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(100, 116, 139, 0.7);
+        }
+
+        /* Tooltip */
+        .tooltip {
+            position: absolute;
+            background: rgba(15, 23, 42, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 0.75rem;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 1000;
+            font-size: 0.875rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            max-width: 250px;
+            backdrop-filter: blur(20px);
+        }
+
+        .tooltip.visible {
+            opacity: 1;
+        }
+
+        .tooltip-title {
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 0.25rem;
+        }
+
+        .tooltip-detail {
+            color: #cbd5e1;
+            font-size: 0.75rem;
+            line-height: 1.5;
+        }
+
+        /* Keyboard Shortcut Hint */
+        .shortcut-hint {
+            font-size: 0.7rem;
+            color: #64748b;
+            margin-left: auto;
+            background: rgba(100, 116, 139, 0.2);
+            padding: 0.125rem 0.375rem;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Courier New', monospace;
+        }
+
+        /* Device Palette Styles */
+        .device-palette {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.5rem;
+        }
+
+        .device-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 0.75rem;
+            background: rgba(15, 23, 42, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            cursor: grab;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .device-item:hover {
+            background: rgba(59, 130, 246, 0.2);
+            border-color: rgba(59, 130, 246, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .device-item:active {
+            cursor: grabbing;
+            transform: translateY(0);
+        }
+
+        .device-item.dragging {
+            opacity: 0.5;
+        }
+
+        .device-icon {
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 0.5rem;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .router-icon {
+            color: #10b981;
+        }
+
+        .switch-icon {
+            color: #3b82f6;
+        }
+
+        .pc-icon {
+            color: #8b5cf6;
+        }
+
+        .server-icon {
+            color: #f59e0b;
+        }
+
+        .ap-icon {
+            color: #ec4899;
+        }
+
+        .device-label {
+            font-size: 0.7rem;
+            color: #cbd5e1;
+            font-weight: 500;
+        }
+
+        /* Device name editing */
+        .device-name-input {
+            background: rgba(15, 23, 42, 0.9);
+            border: 2px solid #3b82f6;
+            border-radius: 4px;
+            padding: 0.25rem 0.5rem;
+            font-size: 12px;
+            color: #fff;
+            font-weight: 600;
+            text-align: center;
+            outline: none;
+            width: 100px;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .app-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .sidebar {
+                max-height: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="tooltip" id="tooltip"></div>
+    <div class="toast-container" id="toastContainer"></div>
+
+    <div class="app-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <!-- Welcome Banner -->
+            <div class="welcome-banner" id="welcomeBanner" style="display: none;">
+                <div class="welcome-content">
+                    <h3>👋 Welcome to AutoMesh Builder!</h3>
+                    <p>🎯 Drag devices from the palette onto the canvas, or click to add at center. Double-click device names to edit them. Connect devices with links to build your mesh network!</p>
+                </div>
+                <button class="welcome-close" onclick="closeWelcome()">×</button>
+            </div>
+
+            <!-- Device Palette -->
+            <div class="glass-card panel" style="border-left: 3px solid #3b82f6;">
+                <h2>
+                    Device Palette
+                    <span class="help-icon" title="Drag devices from the palette onto the canvas, or click to add at center. Double-click device names to edit them.">?</span>
+                </h2>
+                <div style="font-size: 0.75rem; color: #94a3b8; margin-bottom: 0.75rem;">
+                    Drag & drop or click to add devices
+                </div>
+                <div class="device-palette" id="devicePalette">
+                    <div class="device-item" draggable="true" data-device-type="router" title="Router - Network routing device">
+                        <div class="device-icon router-icon">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                                <line x1="8" y1="21" x2="16" y2="21"></line>
+                                <line x1="12" y1="17" x2="12" y2="21"></line>
+                            </svg>
+                        </div>
+                        <span class="device-label">Router</span>
+                    </div>
+                    <div class="device-item" draggable="true" data-device-type="switch" title="Switch - Network switching device">
+                        <div class="device-icon switch-icon">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="2" y="4" width="20" height="16" rx="2" ry="2"></rect>
+                                <line x1="6" y1="8" x2="6" y2="16"></line>
+                                <line x1="12" y1="8" x2="12" y2="16"></line>
+                                <line x1="18" y1="8" x2="18" y2="16"></line>
+                            </svg>
+                        </div>
+                        <span class="device-label">Switch</span>
+                    </div>
+                    <div class="device-item" draggable="true" data-device-type="pc" title="PC - Personal Computer">
+                        <div class="device-icon pc-icon">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                                <line x1="8" y1="21" x2="16" y2="21"></line>
+                                <line x1="12" y1="17" x2="12" y2="21"></line>
+                            </svg>
+                        </div>
+                        <span class="device-label">PC</span>
+                    </div>
+                    <div class="device-item" draggable="true" data-device-type="server" title="Server - Network server">
+                        <div class="device-icon server-icon">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+                                <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+                                <line x1="6" y1="6" x2="6.01" y2="6"></line>
+                                <line x1="6" y1="18" x2="6.01" y2="18"></line>
+                            </svg>
+                        </div>
+                        <span class="device-label">Server</span>
+                    </div>
+                    <div class="device-item" draggable="true" data-device-type="accesspoint" title="Access Point - Wireless access point">
+                        <div class="device-icon ap-icon">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                                <path d="M2 17l10 5 10-5"></path>
+                                <path d="M2 12l10 5 10-5"></path>
+                            </svg>
+                        </div>
+                        <span class="device-label">AP</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Add Node Panel (Legacy - for manual entry) -->
+            <div class="glass-card panel" style="display: none;" id="legacyAddNodePanel">
+                <h2>
+                    Add Node
+                    <span class="help-icon" title="Add a node to your network. Use descriptive names like 'Router1' or 'Server-A'. Press Enter to add quickly.">?</span>
+                </h2>
+                <div class="form-group">
+                    <label for="nodeName">Node Name</label>
+                    <input type="text" id="nodeName" placeholder="e.g., Router1, Server-A" 
+                           autocomplete="off" required />
+                    <div class="input-hint">Press Enter to add</div>
+                </div>
+                <button class="btn btn-primary" onclick="addNode()" id="addNodeBtn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="16"></line>
+                        <line x1="8" y1="12" x2="16" y2="12"></line>
+                    </svg>
+                    Add Node
+                    <span class="shortcut-hint">Enter</span>
+                </button>
+            </div>
+
+            <!-- Add Link Panel -->
+            <div class="glass-card panel">
+                <h2>
+                    Add Link
+                    <span class="help-icon" title="Connect two nodes with a link. Set latency (required) and optional bandwidth. Lower latency = faster path.">?</span>
+                </h2>
+                <div class="form-group">
+                    <label for="linkFrom">From Node</label>
+                    <select id="linkFrom" required>
+                        <option value="">Select node...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="linkTo">To Node</label>
+                    <select id="linkTo" required>
+                        <option value="">Select node...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="linkLatency">Latency (ms)</label>
+                    <input type="number" id="linkLatency" placeholder="10" value="10" min="0.1" step="0.1" required />
+                    <div class="input-hint">Lower = faster connection</div>
+                </div>
+                <div class="form-group">
+                    <label for="linkBandwidth">Bandwidth (Mbps)</label>
+                    <input type="number" id="linkBandwidth" placeholder="1000 (optional)" min="1" step="1" />
+                    <div class="input-hint">Optional: data transfer capacity</div>
+                </div>
+                <button class="btn btn-primary" onclick="addLink()" id="addLinkBtn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                        <circle cx="12" cy="10" r="3"></circle>
+                    </svg>
+                    Add Link
+                </button>
+            </div>
+
+            <!-- Network Info -->
+            <div class="glass-card panel">
+                <h2>
+                    Network Overview
+                    <span class="help-icon" title="Real-time statistics about your network topology and health.">?</span>
+                </h2>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <div class="info-label">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block; vertical-align: middle; margin-right: 4px;">
+                                <circle cx="12" cy="12" r="10"></circle>
+                            </svg>
+                            Nodes
+                        </div>
+                        <div class="info-value" id="infoNodes">0</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block; vertical-align: middle; margin-right: 4px;">
+                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                            </svg>
+                            Links
+                        </div>
+                        <div class="info-value" id="infoLinks">0</div>
+                    </div>
+                    <div class="info-item" id="connectedInfoItem">
+                        <div class="info-label">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block; vertical-align: middle; margin-right: 4px;">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                            </svg>
+                            Status
+                        </div>
+                        <div class="info-value" id="infoConnected" style="font-size: 1.125rem;">-</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block; vertical-align: middle; margin-right: 4px;">
+                                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                            </svg>
+                            Avg Degree
+                        </div>
+                        <div class="info-value" id="infoDegree">0</div>
+                    </div>
+                </div>
+                
+                <!-- Mesh Network Validation -->
+                <div id="meshValidation" style="margin-top: 1rem; padding: 1rem; background: rgba(15, 23, 42, 0.4); border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.1);">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+                        <div style="font-size: 0.75rem; color: #94a3b8; font-weight: 600; display: flex; align-items: center; gap: 0.5rem;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                                <path d="M2 17l10 5 10-5"></path>
+                                <path d="M2 12l10 5 10-5"></path>
+                            </svg>
+                            Mesh Network Status
+                        </div>
+                        <div id="meshStatusBadge" style="padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.7rem; font-weight: 600; background: rgba(100, 116, 139, 0.3); color: #94a3b8;">
+                            Checking...
+                        </div>
+                    </div>
+                    <div id="meshValidationDetails" style="font-size: 0.7rem; color: #cbd5e1; line-height: 1.6;">
+                        <div id="meshValidationText">Add nodes and links to build your mesh network</div>
+                    </div>
+                    <div id="meshSuggestions" style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid rgba(255, 255, 255, 0.1); font-size: 0.65rem; color: #94a3b8; display: none;">
+                        <div style="font-weight: 600; margin-bottom: 0.25rem; color: #f59e0b;">💡 Suggestions:</div>
+                        <div id="meshSuggestionsList"></div>
+                    </div>
+                </div>
+                
+                <div id="networkHealth" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(255, 255, 255, 0.1);">
+                    <div style="font-size: 0.75rem; color: #94a3b8; margin-bottom: 0.5rem;">Network Health</div>
+                    <div id="healthBar" style="height: 6px; background: rgba(15, 23, 42, 0.5); border-radius: 3px; overflow: hidden;">
+                        <div id="healthFill" style="height: 100%; background: linear-gradient(90deg, #ef4444 0%, #f59e0b 50%, #10b981 100%); width: 0%; transition: width 0.3s;"></div>
+                    </div>
+                    <div id="healthText" style="font-size: 0.7rem; color: #64748b; margin-top: 0.25rem;">No network yet</div>
+                </div>
+            </div>
+
+            <!-- Nodes List -->
+            <div class="glass-card panel">
+                <h2>Nodes</h2>
+                <div class="list-container" id="nodesList">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="12" y1="8" x2="12" y2="16"></line>
+                                <line x1="8" y1="12" x2="16" y2="12"></line>
+                            </svg>
+                        </div>
+                        <h3>No nodes yet</h3>
+                        <p>Add your first node above to get started!</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Links List -->
+            <div class="glass-card panel">
+                <h2>Links</h2>
+                <div class="list-container" id="linksList">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                                <circle cx="12" cy="10" r="3"></circle>
+                            </svg>
+                        </div>
+                        <h3>No links yet</h3>
+                        <p>Connect nodes using the form above</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Route Testing -->
+            <div class="glass-card panel route-panel">
+                <h2>
+                    Test Route
+                    <span class="help-icon" title="Find the shortest path between two nodes using Dijkstra's algorithm. The path will be highlighted in green.">?</span>
+                </h2>
+                <div class="form-group">
+                    <label for="routeFrom">From</label>
+                    <select id="routeFrom">
+                        <option value="">Select source...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="routeTo">To</label>
+                    <select id="routeTo">
+                        <option value="">Select target...</option>
+                    </select>
+                </div>
+                <button class="btn btn-success" onclick="findRoute()" id="findRouteBtn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="m21 21-4.35-4.35"></path>
+                    </svg>
+                    Find Shortest Path
+                </button>
+                <div id="routeResult"></div>
+            </div>
+
+            <!-- Self-Healing Mesh Network -->
+            <div class="glass-card panel" style="border-left: 3px solid #10b981;">
+                <h2>
+                    🔄 Self-Healing Mesh
+                    <span class="help-icon" title="Simulate failures and watch the mesh network automatically find alternative paths! This demonstrates the self-healing capability of mesh networks.">?</span>
+                </h2>
+                <div style="font-size: 0.75rem; color: #94a3b8; margin-bottom: 1rem; line-height: 1.5;">
+                    Mesh networks automatically reroute when failures occur. Test the self-healing capability!
+                </div>
+                
+                <div class="form-group">
+                    <label>Simulate Failure</label>
+                    <select id="failureType" style="margin-bottom: 0.5rem;">
+                        <option value="node">Node Failure</option>
+                        <option value="link">Link Failure</option>
+                    </select>
+                    <select id="failureTarget" style="display: none;">
+                        <option value="">Select link...</option>
+                    </select>
+                </div>
+                
+                <button class="btn btn-danger" onclick="simulateFailure()" id="simulateFailureBtn" style="margin-bottom: 0.5rem;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                    Simulate Failure
+                </button>
+                
+                <button class="btn btn-secondary" onclick="healNetwork()" id="healNetworkBtn" style="margin-bottom: 0.5rem;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                    </svg>
+                    Heal Network
+                </button>
+                
+                <div id="healingStatus" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(255, 255, 255, 0.1);">
+                    <div style="font-size: 0.75rem; color: #94a3b8; margin-bottom: 0.5rem;">Failure Status</div>
+                    <div id="failedNodesList" style="font-size: 0.7rem; color: #ef4444; margin-bottom: 0.25rem;"></div>
+                    <div id="failedLinksList" style="font-size: 0.7rem; color: #ef4444;"></div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="glass-card panel">
+                <h2>Actions</h2>
+                <button class="btn btn-danger" onclick="clearNetwork()" style="margin-bottom: 0.5rem;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                    Clear Network
+                </button>
+                <button class="btn btn-secondary" onclick="exportNetwork()" style="margin-bottom: 0.5rem;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    Export JSON
+                </button>
+                <button class="btn btn-secondary" onclick="document.getElementById('importFileInput').click()" style="margin-bottom: 0.5rem;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="17 8 12 3 7 8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                    Import JSON
+                </button>
+                <input type="file" id="importFileInput" accept=".json,application/json" style="display: none;" onchange="importNetwork(event)">
+                <button class="btn btn-primary" onclick="exportToPacketTracer()" id="exportPktBtn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="9" y1="3" x2="9" y2="21"></line>
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    Download .pkt File
+                </button>
+                <button class="btn btn-secondary" onclick="exportManualGuide()" style="margin-top: 0.5rem;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="16" y1="13" x2="8" y1="13"></line>
+                        <line x1="16" y1="17" x2="8" y1="17"></line>
+                        <polyline points="10 9 9 9 8 9"></polyline>
+                    </svg>
+                    Download Manual Guide
+                </button>
+            </div>
+        </div>
+
+        <!-- Network Visualization -->
+        <div class="glass-card network-panel">
+            <div class="network-header">
+                <h1>Network Visualization</h1>
+                <div class="header-actions">
+                    <button class="header-btn" onclick="fitToView()" title="Fit to view">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-dot" style="background: #3b82f6;"></div>
+                    <span>Source Node</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot" style="background: #f59e0b;"></div>
+                    <span>Target Node</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot" style="background: #10b981;"></div>
+                    <span>Router</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot" style="background: #3b82f6;"></div>
+                    <span>Switch</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot" style="background: #8b5cf6;"></div>
+                    <span>PC</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot" style="background: #f59e0b;"></div>
+                    <span>Server</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot" style="background: #ec4899;"></div>
+                    <span>Access Point</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-line" style="background: #4ade80; box-shadow: 0 0 6px rgba(74, 222, 128, 0.5);"></div>
+                    <span>Shortest Path</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-line" style="background: #10b981;"></div>
+                    <span>Fast Link (&lt;10ms)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-line" style="background: #f59e0b;"></div>
+                    <span>Medium Link (10-50ms)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-line" style="background: #ef4444; border-style: dashed; border-width: 2px;"></div>
+                    <span>Slow Link (&gt;50ms)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot" style="background: #ef4444; opacity: 0.5; border: 2px dashed #ef4444;"></div>
+                    <span>Failed Node</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-line" style="background: #ef4444; opacity: 0.3; border-style: dashed;"></div>
+                    <span>Failed Link</span>
+                </div>
+            </div>
+            <div id="meshNetworkIndicator" style="margin-top: 1rem; padding: 0.75rem; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px; display: none;">
+                <div style="display: flex; align-items: center; gap: 0.5rem; color: #10b981; font-size: 0.75rem; font-weight: 600;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                    </svg>
+                    <span>This is a valid mesh network!</span>
+                </div>
+                <div style="font-size: 0.65rem; color: #94a3b8; margin-top: 0.25rem;">
+                    Your network has redundancy and self-healing capability
+                </div>
+            </div>
+            <svg id="network" width="100%" height="100%"></svg>
+        </div>
+    </div>
+
+    <script>
+        // Network data
+        let nodes = [];
+        let links = [];
+        let currentPath = [];
+        let sourceNode = null;
+        let targetNode = null;
+        let svg = null;
+        let g = null;
+        let simulation = null;
+        let zoomBehavior = null;
+        
+        // Self-healing mesh network data
+        let failedNodes = new Set();
+        let failedLinks = new Set();
+        
+        // Device types and counters
+        const deviceTypes = {
+            router: { color: '#10b981', icon: 'R', label: 'Router' },
+            switch: { color: '#3b82f6', icon: 'S', label: 'Switch' },
+            pc: { color: '#8b5cf6', icon: 'PC', label: 'PC' },
+            server: { color: '#f59e0b', icon: 'SRV', label: 'Server' },
+            accesspoint: { color: '#ec4899', icon: 'AP', label: 'Access Point' }
+        };
+        let deviceCounters = { router: 0, switch: 0, pc: 0, server: 0, accesspoint: 0 };
+        let editingNodeName = null;
+
+        // Toast notification system
+        function showToast(type, title, message, duration = 3000) {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            
+            const icons = {
+                success: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>',
+                error: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>',
+                info: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>'
+            };
+            
+            toast.innerHTML = `
+                <div class="toast-icon">${icons[type] || icons.info}</div>
+                <div class="toast-content">
+                    <div class="toast-title">${title}</div>
+                    <div class="toast-message">${message}</div>
+                </div>
+            `;
+            
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.animation = 'toastSlideIn 0.3s ease-out reverse';
+                setTimeout(() => toast.remove(), 300);
+            }, duration);
+        }
+
+        // Welcome banner
+        function showWelcome() {
+            if (!localStorage.getItem('welcomeShown')) {
+                document.getElementById('welcomeBanner').style.display = 'flex';
+            }
+        }
+
+        function closeWelcome() {
+            document.getElementById('welcomeBanner').style.display = 'none';
+            localStorage.setItem('welcomeShown', 'true');
+        }
+
+        // Initialize
+        function init() {
+            showWelcome();
+            updateSelects();
+            updateInfo();
+            updateLists();
+            updateFailureSelects();
+            renderNetwork();
+            setupDevicePalette();  // Setup after SVG is initialized
+            
+            // Update failure type selector
+            document.getElementById('failureType').addEventListener('change', function() {
+                const failureType = this.value;
+                const targetSelect = document.getElementById('failureTarget');
+                if (failureType === 'node') {
+                    targetSelect.style.display = 'none';
+                    updateFailureSelects();
+                } else {
+                    targetSelect.style.display = 'block';
+                    updateFailureSelects();
+                }
+            });
+            
+            // Keyboard shortcuts
+            document.addEventListener('keydown', (e) => {
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') {
+                    if (e.key === 'Enter' && e.target.id === 'nodeName') {
+                        e.preventDefault();
+                        addNode();
+                    }
+                }
+                // ESC to cancel editing
+                if (e.key === 'Escape' && editingNodeName) {
+                    cancelEditNodeName();
+                }
+            });
+        }
+        
+        // Setup device palette drag and drop
+        function setupDevicePalette() {
+            const palette = document.getElementById('devicePalette');
+            if (!palette) return;
+            
+            const deviceItems = palette.querySelectorAll('.device-item');
+            
+            deviceItems.forEach(item => {
+                // Drag start
+                item.addEventListener('dragstart', function(e) {
+                    this.classList.add('dragging');
+                    e.dataTransfer.effectAllowed = 'copy';
+                    e.dataTransfer.setData('deviceType', this.dataset.deviceType);
+                });
+                
+                // Drag end
+                item.addEventListener('dragend', function() {
+                    this.classList.remove('dragging');
+                });
+                
+                // Click to add at center
+                item.addEventListener('click', function(e) {
+                    // Don't trigger if dragging
+                    if (!this.classList.contains('dragging')) {
+                        const deviceType = this.dataset.deviceType;
+                        addDeviceFromPalette(deviceType, null, null);
+                    }
+                });
+            });
+            
+            // Setup drop zone on SVG (ensure SVG exists)
+            if (!svg || !svg.node()) {
+                svg = d3.select('#network');
+            }
+            
+            if (svg && svg.node()) {
+                svg.node().addEventListener('dragover', function(e) {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'copy';
+                });
+                
+                svg.node().addEventListener('drop', function(e) {
+                    e.preventDefault();
+                    const deviceType = e.dataTransfer.getData('deviceType');
+                    if (deviceType) {
+                        const rect = this.getBoundingClientRect();
+                        const x = e.clientX - rect.left;
+                        const y = e.clientY - rect.top;
+                        
+                        // Convert screen coordinates to SVG coordinates
+                        const transform = d3.zoomTransform(svg.node());
+                        const svgX = (x - transform.x) / transform.k;
+                        const svgY = (y - transform.y) / transform.k;
+                        
+                        addDeviceFromPalette(deviceType, svgX, svgY);
+                    }
+                });
+            }
+        }
+        
+        // Add device from palette
+        function addDeviceFromPalette(deviceType, x, y) {
+            if (!deviceTypes[deviceType]) {
+                showToast('error', 'Invalid Device', 'Unknown device type');
+                return;
+            }
+            
+            deviceCounters[deviceType]++;
+            const deviceInfo = deviceTypes[deviceType];
+            const defaultName = `${deviceInfo.label}${deviceCounters[deviceType]}`;
+            
+            // Use provided coordinates or center of canvas
+            let finalX, finalY;
+            if (x !== null && y !== null) {
+                finalX = x;
+                finalY = y;
+            } else {
+                // Get SVG dimensions
+                if (!svg || !svg.node()) {
+                    svg = d3.select('#network');
+                }
+                if (svg && svg.node()) {
+                    const rect = svg.node().getBoundingClientRect();
+                    const transform = d3.zoomTransform(svg.node());
+                    finalX = (rect.width / 2 - transform.x) / transform.k;
+                    finalY = (rect.height / 2 - transform.y) / transform.k;
+                } else {
+                    finalX = 400;
+                    finalY = 300;
+                }
+            }
+            
+            const newNode = {
+                id: nodes.length,
+                name: defaultName,
+                type: deviceType,
+                x: finalX,
+                y: finalY
+            };
+            
+            nodes.push(newNode);
+            updateSelects();
+            updateFailureSelects();
+            updateInfo();
+            updateLists();
+            renderNetwork();
+            showToast('success', 'Device Added', `${deviceInfo.label} "${defaultName}" added to network`);
+        }
+        
+        // Edit node name (double-click)
+        function startEditNodeName(nodeName) {
+            if (editingNodeName) {
+                cancelEditNodeName();
+            }
+            
+            editingNodeName = nodeName;
+            const node = nodes.find(n => n.name === nodeName);
+            if (!node) return;
+            
+            const labels = d3.selectAll('.node-label-text');
+            labels.each(function(d) {
+                if (d.name === nodeName) {
+                    const label = d3.select(this);
+                    const bbox = this.getBBox();
+                    const parent = d3.select(this.parentNode);
+                    
+                    // Create input field
+                    const input = parent.append('foreignObject')
+                        .attr('x', bbox.x - 5)
+                        .attr('y', bbox.y - 2)
+                        .attr('width', Math.max(bbox.width + 10, 100))
+                        .attr('height', bbox.height + 4)
+                        .attr('class', 'name-edit-foreign');
+                    
+                    const inputElement = input.append('xhtml:input')
+                        .attr('type', 'text')
+                        .attr('class', 'device-name-input')
+                        .attr('value', nodeName)
+                        .node();
+                    
+                    inputElement.focus();
+                    inputElement.select();
+                    
+                    const finishEdit = () => {
+                        const newName = inputElement.value.trim();
+                        if (newName && newName !== nodeName) {
+                            if (nodes.find(n => n.name === newName)) {
+                                showToast('error', 'Duplicate Name', `Device "${newName}" already exists`);
+                                inputElement.value = nodeName;
+                                return;
+                            }
+                            node.name = newName;
+                            updateSelects();
+                            updateFailureSelects();
+                            updateInfo();
+                            updateLists();
+                            renderNetwork();
+                            showToast('success', 'Name Updated', `Device renamed to "${newName}"`);
+                        }
+                        input.remove();
+                        editingNodeName = null;
+                    };
+                    
+                    inputElement.addEventListener('blur', finishEdit);
+                    inputElement.addEventListener('keydown', function(e) {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            finishEdit();
+                        } else if (e.key === 'Escape') {
+                            e.preventDefault();
+                            input.remove();
+                            editingNodeName = null;
+                        }
+                    });
+                }
+            });
+        }
+        
+        // Cancel editing node name
+        function cancelEditNodeName() {
+            d3.selectAll('.name-edit-foreign').remove();
+            editingNodeName = null;
+        }
+
+        // Add node
+        function addNode() {
+            const nameInput = document.getElementById('nodeName');
+            const name = nameInput.value.trim();
+            
+            if (!name) {
+                showToast('error', 'Error', 'Please enter a node name');
+                nameInput.focus();
+                return;
+            }
+
+            if (nodes.find(n => n.name === name)) {
+                showToast('error', 'Duplicate Node', `Node "${name}" already exists`);
+                nameInput.focus();
+                return;
+            }
+
+            nodes.push({
+                id: nodes.length,
+                name: name,
+                type: 'router', // Default type for legacy add
+                x: Math.random() * 400 + 200,
+                y: Math.random() * 300 + 150
+            });
+
+            nameInput.value = '';
+            updateSelects();
+            updateFailureSelects();
+            updateInfo();
+            updateLists();
+            renderNetwork();
+            showToast('success', 'Node Added', `"${name}" added to network`);
+        }
+
+        // Add link
+        function addLink() {
+            const from = document.getElementById('linkFrom').value;
+            const to = document.getElementById('linkTo').value;
+            const latency = parseFloat(document.getElementById('linkLatency').value) || 10;
+            const bandwidth = document.getElementById('linkBandwidth').value ? 
+                parseFloat(document.getElementById('linkBandwidth').value) : null;
+
+            if (!from || !to) {
+                showToast('error', 'Error', 'Please select both nodes');
+                return;
+            }
+
+            if (from === to) {
+                showToast('error', 'Invalid Link', 'Cannot connect a node to itself');
+                return;
+            }
+
+            const fromNode = nodes.find(n => n.name === from);
+            const toNode = nodes.find(n => n.name === to);
+
+            if (links.find(l => 
+                (l.source.name === from && l.target.name === to) ||
+                (l.source.name === to && l.target.name === from)
+            )) {
+                showToast('error', 'Duplicate Link', 'Link already exists');
+                return;
+            }
+
+            links.push({
+                source: fromNode,
+                target: toNode,
+                latency: latency,
+                bandwidth: bandwidth,
+                id: `${from}-${to}`
+            });
+
+            document.getElementById('linkFrom').value = '';
+            document.getElementById('linkTo').value = '';
+            document.getElementById('linkLatency').value = '10';
+            document.getElementById('linkBandwidth').value = '';
+            
+            updateFailureSelects();
+            updateInfo();
+            updateLists();
+            renderNetwork();
+            showToast('success', 'Link Added', `${from} ↔ ${to} (${latency}ms)`);
+            
+            // Check mesh status after adding link
+            setTimeout(() => {
+                const meshResult = isMeshNetwork();
+                if (meshResult.isValid) {
+                    showToast('success', '✓ Valid Mesh', 'Network meets mesh requirements!');
+                } else if (nodes.length >= 2) {
+                    showToast('info', 'Mesh Status', meshResult.reason);
+                }
+            }, 500);
+        }
+
+        // Remove node
+        function removeNode(nodeName) {
+            if (confirm(`Remove node "${nodeName}" and all its connections?`)) {
+                const removedLinks = links.filter(l => 
+                    l.source.name === nodeName || l.target.name === nodeName
+                ).length;
+                
+                nodes = nodes.filter(n => n.name !== nodeName);
+                links = links.filter(l => 
+                    l.source.name !== nodeName && l.target.name !== nodeName
+                );
+                if (sourceNode === nodeName) sourceNode = null;
+                if (targetNode === nodeName) targetNode = null;
+                currentPath = [];
+                failedNodes.delete(nodeName);  // Remove from failed set if it was there
+                updateSelects();
+                updateFailureSelects();
+                updateFailureStatus();
+                updateInfo();
+                updateLists();
+                renderNetwork();
+                showToast('info', 'Node Removed', `"${nodeName}" and ${removedLinks} link(s) removed`);
+            }
+        }
+
+        // Remove link
+        function removeLink(linkId) {
+            const link = links.find(l => l.id === linkId);
+            if (link) {
+                links = links.filter(l => l.id !== linkId);
+                failedLinks.delete(linkId);  // Remove from failed set if it was there
+                currentPath = [];
+                updateFailureSelects();
+                updateFailureStatus();
+                updateInfo();
+                updateLists();
+                renderNetwork();
+                showToast('info', 'Link Removed', `${link.source.name} ↔ ${link.target.name} removed`);
+            }
+        }
+
+        // Find route (with self-healing support)
+        function findRoute() {
+            const from = document.getElementById('routeFrom').value;
+            const to = document.getElementById('routeTo').value;
+
+            if (!from || !to) {
+                showToast('error', 'Error', 'Please select both source and target nodes');
+                return;
+            }
+
+            if (from === to) {
+                showToast('error', 'Invalid Route', 'Source and target cannot be the same');
+                return;
+            }
+
+            sourceNode = from;
+            targetNode = to;
+            
+            // Check if we have failures - this triggers self-healing
+            const hasFailures = failedNodes.size > 0 || failedLinks.size > 0;
+            if (hasFailures) {
+                showToast('info', 'Self-Healing', 'Finding alternate path around failures...');
+            }
+            
+            currentPath = dijkstra(from, to);
+            
+            const resultDiv = document.getElementById('routeResult');
+            if (currentPath && currentPath.length > 0) {
+                const totalLatency = calculatePathLatency(currentPath);
+                const isHealed = hasFailures && currentPath.length > 0;
+                
+                resultDiv.innerHTML = `
+                    <div class="route-result" style="${isHealed ? 'border-color: #10b981; border-width: 2px;' : ''}">
+                        <div style="color: ${isHealed ? '#10b981' : '#4ade80'}; font-weight: 600; display: flex; align-items: center; gap: 0.5rem;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                            </svg>
+                            ${isHealed ? '🔄 Self-Healed Route Found!' : 'Route Found!'}
+                        </div>
+                        <div class="route-path">${currentPath.join(' → ')}</div>
+                        <div class="route-latency">Total Latency: ${totalLatency.toFixed(1)}ms • ${currentPath.length - 1} hop(s)</div>
+                        ${isHealed ? '<div style="color: #10b981; font-size: 0.7rem; margin-top: 0.5rem;">✓ Mesh network automatically found alternative path!</div>' : ''}
+                    </div>
+                `;
+                
+                if (isHealed) {
+                    showToast('success', 'Self-Healing Success', `Alternate path found: ${currentPath.length - 1} hop(s), ${totalLatency.toFixed(1)}ms`);
+                } else {
+                    showToast('success', 'Route Found', `${currentPath.length - 1} hop(s), ${totalLatency.toFixed(1)}ms`);
+                }
+            } else {
+                resultDiv.innerHTML = `
+                    <div class="route-result" style="border-color: #ef4444;">
+                        <div style="color: #ef4444; font-weight: 600; display: flex; align-items: center; gap: 0.5rem;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="12" y1="8" x2="12" y2="12"></line>
+                                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                            </svg>
+                            No Route Found
+                        </div>
+                        <div style="color: #94a3b8; font-size: 0.75rem; margin-top: 0.5rem;">
+                            ${hasFailures ? 'Network is partitioned due to failures. Use "Heal Network" to restore.' : 'The network may be disconnected. Add more links to connect these nodes.'}
+                        </div>
+                    </div>
+                `;
+                showToast('error', 'No Route', hasFailures ? 'Network partitioned - heal to restore' : 'Nodes are not connected');
+            }
+            renderNetwork();
+        }
+
+        // Dijkstra's algorithm (with failure awareness for self-healing)
+        function dijkstra(startName, endName) {
+            const start = nodes.find(n => n.name === startName);
+            const end = nodes.find(n => n.name === endName);
+            
+            if (!start || !end) return null;
+            
+            // Skip failed nodes
+            if (failedNodes.has(startName) || failedNodes.has(endName)) {
+                return null;
+            }
+
+            const distances = {};
+            const previous = {};
+            const unvisited = new Set();
+            
+            // Only include active (non-failed) nodes
+            nodes.forEach(n => {
+                if (!failedNodes.has(n.name)) {
+                    distances[n.name] = Infinity;
+                    previous[n.name] = null;
+                    unvisited.add(n.name);
+                }
+            });
+            
+            distances[startName] = 0;
+
+            while (unvisited.size > 0) {
+                let current = null;
+                let minDist = Infinity;
+                
+                unvisited.forEach(name => {
+                    if (distances[name] < minDist) {
+                        minDist = distances[name];
+                        current = name;
+                    }
+                });
+
+                if (current === null || minDist === Infinity) break;
+                if (current === endName) break;
+
+                unvisited.delete(current);
+
+                // Filter out failed links
+                const currentLinks = links.filter(l => {
+                    if (failedLinks.has(l.id)) return false;
+                    if (failedNodes.has(l.source.name) || failedNodes.has(l.target.name)) return false;
+                    return (l.source.name === current || l.target.name === current);
+                });
+
+                currentLinks.forEach(link => {
+                    const neighbor = link.source.name === current ? 
+                        link.target.name : link.source.name;
+                    
+                    if (!unvisited.has(neighbor) || failedNodes.has(neighbor)) return;
+
+                    const alt = distances[current] + link.latency;
+                    if (alt < distances[neighbor]) {
+                        distances[neighbor] = alt;
+                        previous[neighbor] = current;
+                    }
+                });
+            }
+
+            if (distances[endName] === Infinity) return null;
+
+            const path = [];
+            let current = endName;
+            while (current !== null) {
+                path.unshift(current);
+                current = previous[current];
+            }
+
+            return path;
+        }
+
+        // Calculate path latency
+        function calculatePathLatency(path) {
+            let total = 0;
+            for (let i = 0; i < path.length - 1; i++) {
+                const link = links.find(l =>
+                    (l.source.name === path[i] && l.target.name === path[i + 1]) ||
+                    (l.source.name === path[i + 1] && l.target.name === path[i])
+                );
+                if (link) total += link.latency;
+            }
+            return total;
+        }
+
+        // Update select dropdowns
+        function updateSelects() {
+            const nodeOptions = nodes.map(n => `<option value="${n.name}">${n.name}</option>`).join('');
+            ['linkFrom', 'linkTo', 'routeFrom', 'routeTo'].forEach(id => {
+                const select = document.getElementById(id);
+                const currentValue = select.value;
+                select.innerHTML = '<option value="">' + (id.includes('route') ? 'Select...' : 'Select node...') + '</option>' + nodeOptions;
+                if (nodes.find(n => n.name === currentValue)) {
+                    select.value = currentValue;
+                }
+            });
+        }
+        
+        // Update failure select dropdowns
+        function updateFailureSelects() {
+            const failureType = document.getElementById('failureType').value;
+            const targetSelect = document.getElementById('failureTarget');
+            
+            if (failureType === 'node') {
+                // Node failure - show active nodes only
+                const activeNodes = nodes.filter(n => !failedNodes.has(n.name));
+                const nodeOptions = activeNodes.map(n => `<option value="${n.name}">${n.name}</option>`).join('');
+                targetSelect.innerHTML = '<option value="">Select node...</option>' + nodeOptions;
+                targetSelect.style.display = 'none';
+            } else {
+                // Link failure - show active links only
+                const activeLinks = links.filter(l => !failedLinks.has(l.id));
+                const linkOptions = activeLinks.map(l => 
+                    `<option value="${l.id}">${l.source.name} ↔ ${l.target.name}</option>`
+                ).join('');
+                targetSelect.innerHTML = '<option value="">Select link...</option>' + linkOptions;
+                targetSelect.style.display = 'block';
+            }
+        }
+        
+        // Simulate failure (self-healing test)
+        function simulateFailure() {
+            const failureType = document.getElementById('failureType').value;
+            const targetSelect = document.getElementById('failureTarget');
+            const target = failureType === 'node' ? 
+                (targetSelect.value || (nodes.find(n => !failedNodes.has(n.name))?.name)) :
+                targetSelect.value;
+            
+            if (!target) {
+                showToast('error', 'Error', 'Please select a target to fail');
+                return;
+            }
+            
+            if (failureType === 'node') {
+                if (failedNodes.has(target)) {
+                    showToast('error', 'Already Failed', `Node "${target}" is already failed`);
+                    return;
+                }
+                if (nodes.length - failedNodes.size <= 1) {
+                    showToast('error', 'Cannot Fail', 'Need at least one active node');
+                    return;
+                }
+                
+                failedNodes.add(target);
+                showToast('error', 'Node Failed', `Node "${target}" has failed. Mesh network will find alternative paths.`);
+            } else {
+                if (failedLinks.has(target)) {
+                    showToast('error', 'Already Failed', 'This link is already failed');
+                    return;
+                }
+                
+                failedLinks.add(target);
+                const link = links.find(l => l.id === target);
+                if (link) {
+                    showToast('error', 'Link Failed', `Link "${link.source.name} ↔ ${link.target.name}" has failed. Mesh network will reroute.`);
+                }
+            }
+            
+            // Clear current path if it's affected
+            if (currentPath && currentPath.length > 0) {
+                const pathAffected = failureType === 'node' 
+                    ? currentPath.includes(target)
+                    : currentPath.some((node, i) => {
+                        const link = links.find(l => l.id === target);
+                        if (!link) return false;
+                        return (node === link.source.name && currentPath[i+1] === link.target.name) ||
+                               (node === link.target.name && currentPath[i+1] === link.source.name);
+                    });
+                
+                if (pathAffected) {
+                    currentPath = [];
+                    document.getElementById('routeResult').innerHTML = '';
+                    showToast('info', 'Path Affected', 'Current path affected by failure. Finding new route...');
+                }
+            }
+            
+            updateFailureSelects();
+            updateFailureStatus();
+            updateInfo();
+            renderNetwork();
+        }
+        
+        // Heal network (restore all failures)
+        function healNetwork() {
+            if (failedNodes.size === 0 && failedLinks.size === 0) {
+                showToast('info', 'No Failures', 'Network is already healthy');
+                return;
+            }
+            
+            const nodeCount = failedNodes.size;
+            const linkCount = failedLinks.size;
+            
+            failedNodes.clear();
+            failedLinks.clear();
+            
+            updateFailureSelects();
+            updateFailureStatus();
+            updateInfo();
+            renderNetwork();
+            
+            showToast('success', 'Network Healed', `Restored ${nodeCount} node(s) and ${linkCount} link(s). Network is fully operational!`);
+            
+            // If we had a path, try to find it again
+            if (sourceNode && targetNode) {
+                setTimeout(() => {
+                    findRoute();
+                }, 500);
+            }
+        }
+        
+        // Update failure status display
+        function updateFailureStatus() {
+            const failedNodesEl = document.getElementById('failedNodesList');
+            const failedLinksEl = document.getElementById('failedLinksList');
+            
+            if (failedNodes.size === 0) {
+                failedNodesEl.innerHTML = '<span style="color: #10b981;">✓ No failed nodes</span>';
+            } else {
+                const failedList = Array.from(failedNodes).map(n => `<span style="background: rgba(239, 68, 68, 0.2); padding: 0.125rem 0.375rem; border-radius: 4px; margin-right: 0.25rem;">❌ ${n}</span>`).join('');
+                failedNodesEl.innerHTML = `Failed Nodes: ${failedList}`;
+            }
+            
+            if (failedLinks.size === 0) {
+                failedLinksEl.innerHTML = '<span style="color: #10b981;">✓ No failed links</span>';
+            } else {
+                const failedLinkNames = Array.from(failedLinks).map(linkId => {
+                    const link = links.find(l => l.id === linkId);
+                    return link ? `${link.source.name} ↔ ${link.target.name}` : linkId;
+                });
+                const failedList = failedLinkNames.map(name => `<span style="background: rgba(239, 68, 68, 0.2); padding: 0.125rem 0.375rem; border-radius: 4px; margin-right: 0.25rem; margin-top: 0.25rem; display: inline-block;">❌ ${name}</span>`).join('');
+                failedLinksEl.innerHTML = `Failed Links: ${failedList}`;
+            }
+        }
+
+        // Check if network is a valid mesh network
+        function isMeshNetwork() {
+            if (nodes.length === 0) return { isValid: false, reason: 'No nodes' };
+            if (nodes.length === 1) return { isValid: false, reason: 'Single node (need at least 2)' };
+            
+            // Check connectivity
+            const isConnected = checkConnectivity();
+            if (!isConnected) {
+                return { isValid: false, reason: 'Network is disconnected' };
+            }
+            
+            // Check minimum degree (each node should have at least 2 connections for mesh)
+            const degrees = {};
+            nodes.forEach(n => degrees[n.name] = 0);
+            links.forEach(l => {
+                degrees[l.source.name]++;
+                degrees[l.target.name]++;
+            });
+            
+            const minDegree = Math.min(...Object.values(degrees));
+            if (minDegree < 2) {
+                const lowDegreeNodes = Object.keys(degrees).filter(n => degrees[n] < 2);
+                return { 
+                    isValid: false, 
+                    reason: `Some nodes have < 2 connections`,
+                    details: `Nodes with low connectivity: ${lowDegreeNodes.join(', ')}`
+                };
+            }
+            
+            // Check redundancy (multiple paths between nodes)
+            // For a mesh, we need at least 2 paths between most node pairs
+            if (nodes.length >= 3) {
+                let redundantPaths = 0;
+                let checkedPairs = 0;
+                const maxChecks = Math.min(10, nodes.length * 2);
+                
+                for (let i = 0; i < Math.min(nodes.length, 5); i++) {
+                    for (let j = i + 1; j < Math.min(nodes.length, i + 3); j++) {
+                        if (checkedPairs >= maxChecks) break;
+                        
+                        const source = nodes[i].name;
+                        const target = nodes[j].name;
+                        
+                        // Count simple paths between these nodes
+                        const paths = findAllPaths(source, target, 5); // Limit depth to avoid performance issues
+                        
+                        if (paths.length >= 2) {
+                            redundantPaths++;
+                        }
+                        checkedPairs++;
+                    }
+                }
+                
+                const redundancyRatio = checkedPairs > 0 ? redundantPaths / checkedPairs : 0;
+                
+                if (redundancyRatio < 0.5 && nodes.length >= 3) {
+                    return { 
+                        isValid: false, 
+                        reason: 'Low redundancy (not enough alternative paths)',
+                        details: `Only ${Math.round(redundancyRatio * 100)}% of node pairs have multiple paths`
+                    };
+                }
+            }
+            
+            // Calculate mesh score
+            const avgDegree = nodes.length > 0 ? links.length * 2 / nodes.length : 0;
+            const redundancy = links.length - (nodes.length - 1); // Extra links beyond minimum
+            
+            let meshScore = 0;
+            if (minDegree >= 2) meshScore += 30;
+            if (minDegree >= 3) meshScore += 20;
+            if (avgDegree >= 2) meshScore += 20;
+            if (avgDegree >= 3) meshScore += 10;
+            if (redundancy > 0) meshScore += 20;
+            
+            return { 
+                isValid: true, 
+                reason: 'Valid mesh network',
+                details: `Min degree: ${minDegree}, Avg degree: ${avgDegree.toFixed(1)}, Redundancy: ${redundancy} extra links`,
+                meshScore: meshScore,
+                minDegree: minDegree,
+                avgDegree: avgDegree,
+                redundancy: redundancy
+            };
+        }
+        
+        // Find all simple paths between two nodes (for redundancy checking)
+        function findAllPaths(source, target, maxDepth = 5) {
+            const paths = [];
+            const visited = new Set();
+            
+            function dfs(current, path, depth) {
+                if (depth > maxDepth) return;
+                if (current === target) {
+                    paths.push([...path]);
+                    return;
+                }
+                
+                visited.add(current);
+                
+                links.forEach(link => {
+                    if (failedLinks.has(link.id)) return;
+                    if (failedNodes.has(link.source.name) || failedNodes.has(link.target.name)) return;
+                    
+                    let next = null;
+                    if (link.source.name === current && !visited.has(link.target.name)) {
+                        next = link.target.name;
+                    } else if (link.target.name === current && !visited.has(link.source.name)) {
+                        next = link.source.name;
+                    }
+                    
+                    if (next && !failedNodes.has(next)) {
+                        path.push(next);
+                        dfs(next, path, depth + 1);
+                        path.pop();
+                    }
+                });
+                
+                visited.delete(current);
+            }
+            
+            if (!failedNodes.has(source) && !failedNodes.has(target)) {
+                dfs(source, [source], 0);
+            }
+            
+            return paths;
+        }
+        
+        // Update mesh validation display
+        function updateMeshValidation() {
+            const meshResult = isMeshNetwork();
+            const badge = document.getElementById('meshStatusBadge');
+            const details = document.getElementById('meshValidationDetails');
+            const suggestionsDiv = document.getElementById('meshSuggestions');
+            const suggestionsList = document.getElementById('meshSuggestionsList');
+            const indicator = document.getElementById('meshNetworkIndicator');
+            
+            if (nodes.length === 0) {
+                badge.textContent = 'No Network';
+                badge.style.background = 'rgba(100, 116, 139, 0.3)';
+                badge.style.color = '#94a3b8';
+                badge.style.border = 'none';
+                details.innerHTML = '<div style="color: #64748b;">Add nodes and links to build your mesh network</div>';
+                suggestionsDiv.style.display = 'none';
+                indicator.style.display = 'none';
+                return;
+            }
+            
+            if (meshResult.isValid) {
+                badge.textContent = '✓ Valid Mesh';
+                badge.style.background = 'rgba(16, 185, 129, 0.2)';
+                badge.style.color = '#10b981';
+                badge.style.border = '1px solid rgba(16, 185, 129, 0.3)';
+                
+                const score = meshResult.meshScore || 0;
+                const scoreEmoji = score >= 80 ? '🟢' : score >= 60 ? '🟡' : '🟠';
+                
+                details.innerHTML = `
+                    <div style="color: #10b981; margin-bottom: 0.5rem;">
+                        <strong>${scoreEmoji} Mesh Score: ${score}%</strong>
+                    </div>
+                    <div style="color: #cbd5e1; font-size: 0.65rem;">
+                        ${meshResult.details || 'Network meets mesh requirements'}
+                    </div>
+                    <div style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid rgba(255, 255, 255, 0.1); font-size: 0.65rem; color: #94a3b8;">
+                        ✓ All nodes have ≥2 connections<br>
+                        ✓ Network is connected<br>
+                        ✓ Multiple paths available (redundancy)
+                    </div>
+                `;
+                suggestionsDiv.style.display = 'none';
+                indicator.style.display = 'block';
+            } else {
+                badge.textContent = '⚠ Not a Mesh';
+                badge.style.background = 'rgba(245, 158, 11, 0.2)';
+                badge.style.color = '#f59e0b';
+                badge.style.border = '1px solid rgba(245, 158, 11, 0.3)';
+                
+                details.innerHTML = `
+                    <div style="color: #f59e0b; margin-bottom: 0.5rem;">
+                        <strong>⚠ ${meshResult.reason}</strong>
+                    </div>
+                    <div style="color: #cbd5e1; font-size: 0.65rem;">
+                        ${meshResult.details || 'This network does not meet mesh network requirements'}
+                    </div>
+                `;
+                
+                // Generate suggestions
+                const suggestions = [];
+                const degrees = {};
+                nodes.forEach(n => degrees[n.name] = 0);
+                links.forEach(l => {
+                    degrees[l.source.name]++;
+                    degrees[l.target.name]++;
+                });
+                
+                const lowDegreeNodes = Object.keys(degrees).filter(n => degrees[n] < 2);
+                if (lowDegreeNodes.length > 0) {
+                    suggestions.push(`Add more connections to: ${lowDegreeNodes.join(', ')}`);
+                }
+                
+                if (!checkConnectivity()) {
+                    suggestions.push('Connect all nodes - network is currently disconnected');
+                }
+                
+                const avgDegree = nodes.length > 0 ? links.length * 2 / nodes.length : 0;
+                if (avgDegree < 2) {
+                    suggestions.push(`Increase average degree (currently ${avgDegree.toFixed(1)}, need ≥2)`);
+                }
+                
+                if (suggestions.length > 0) {
+                    suggestionsDiv.style.display = 'block';
+                    suggestionsList.innerHTML = suggestions.map(s => `<div style="margin-top: 0.25rem;">• ${s}</div>`).join('');
+                } else {
+                    suggestionsDiv.style.display = 'none';
+                }
+                
+                indicator.style.display = 'none';
+            }
+        }
+        
+        // Update info panel
+        function updateInfo() {
+            document.getElementById('infoNodes').textContent = nodes.length;
+            document.getElementById('infoLinks').textContent = links.length;
+            
+            const isConnected = checkConnectivity();
+            const connectedEl = document.getElementById('infoConnected');
+            const connectedItem = document.getElementById('connectedInfoItem');
+            
+            if (nodes.length === 0) {
+                connectedEl.textContent = '-';
+                connectedEl.style.color = '#64748b';
+                connectedItem.className = 'info-item';
+            } else {
+                connectedEl.textContent = isConnected ? 'Connected' : 'Disconnected';
+                connectedEl.style.color = isConnected ? '#10b981' : '#ef4444';
+                connectedItem.className = isConnected ? 'info-item connected' : 'info-item disconnected';
+            }
+            
+            const avgDegree = nodes.length > 0 ? 
+                (links.length * 2 / nodes.length).toFixed(1) : '0';
+            document.getElementById('infoDegree').textContent = avgDegree;
+            
+            // Update mesh validation
+            updateMeshValidation();
+            
+            // Update network health
+            updateNetworkHealth();
+        }
+
+        // Update network health indicator
+        function updateNetworkHealth() {
+            const healthFill = document.getElementById('healthFill');
+            const healthText = document.getElementById('healthText');
+            
+            if (nodes.length === 0) {
+                healthFill.style.width = '0%';
+                healthText.textContent = 'No network yet';
+                healthText.style.color = '#64748b';
+                return;
+            }
+            
+            if (nodes.length === 1) {
+                healthFill.style.width = '30%';
+                healthText.textContent = 'Single node - add more nodes';
+                healthText.style.color = '#f59e0b';
+                return;
+            }
+            
+            const isConnected = checkConnectivity();
+            const avgDegree = nodes.length > 0 ? links.length * 2 / nodes.length : 0;
+            const minLinksForConnected = nodes.length - 1;
+            const redundancy = links.length - minLinksForConnected;
+            
+            let health = 0;
+            let status = '';
+            let color = '#ef4444';
+            
+            if (!isConnected) {
+                health = 30;
+                status = 'Network disconnected';
+                color = '#ef4444';
+            } else if (redundancy < 0) {
+                health = 50;
+                status = 'Minimally connected';
+                color = '#f59e0b';
+            } else if (redundancy === 0) {
+                health = 70;
+                status = 'Connected (no redundancy)';
+                color = '#f59e0b';
+            } else if (avgDegree < 2) {
+                health = 80;
+                status = 'Well connected';
+                color = '#10b981';
+            } else {
+                health = 100;
+                status = 'Highly redundant';
+                color = '#10b981';
+            }
+            
+            healthFill.style.width = health + '%';
+            healthFill.style.background = color;
+            healthText.textContent = status;
+            healthText.style.color = color;
+        }
+
+        // Check connectivity
+        function checkConnectivity() {
+            if (nodes.length === 0) return false;
+            if (nodes.length === 1) return true;
+            
+            const visited = new Set();
+            const stack = [nodes[0].name];
+            visited.add(nodes[0].name);
+
+            while (stack.length > 0) {
+                const current = stack.pop();
+                const neighbors = links
+                    .filter(l => l.source.name === current || l.target.name === current)
+                    .map(l => l.source.name === current ? l.target.name : l.source.name);
+
+                neighbors.forEach(neighbor => {
+                    if (!visited.has(neighbor)) {
+                        visited.add(neighbor);
+                        stack.push(neighbor);
+                    }
+                });
+            }
+
+            return visited.size === nodes.length;
+        }
+
+        // Update lists
+        function updateLists() {
+            const nodesList = document.getElementById('nodesList');
+            if (nodes.length === 0) {
+                nodesList.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="12" y1="8" x2="12" y2="16"></line>
+                                <line x1="8" y1="12" x2="16" y2="12"></line>
+                            </svg>
+                        </div>
+                        <h3>No nodes yet</h3>
+                        <p>Add your first node above to get started!</p>
+                    </div>
+                `;
+            } else {
+                nodesList.innerHTML = nodes.map(n => {
+                    const nodeLinks = links.filter(l => l.source.name === n.name || l.target.name === n.name);
+                    const degree = nodeLinks.length;
+                    const deviceType = n.type || 'router';
+                    const deviceInfo = deviceTypes[deviceType] || deviceTypes.router;
+                    const deviceColor = deviceInfo.color;
+                    
+                    // Get appropriate icon SVG based on device type
+                    let iconSvg = '';
+                    if (deviceType === 'router') {
+                        iconSvg = '<rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line>';
+                    } else if (deviceType === 'switch') {
+                        iconSvg = '<rect x="2" y="4" width="20" height="16" rx="2" ry="2"></rect><line x1="6" y1="8" x2="6" y2="16"></line><line x1="12" y1="8" x2="12" y2="16"></line><line x1="18" y1="8" x2="18" y2="16"></line>';
+                    } else if (deviceType === 'pc') {
+                        iconSvg = '<rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line>';
+                    } else if (deviceType === 'server') {
+                        iconSvg = '<rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line>';
+                    } else if (deviceType === 'accesspoint') {
+                        iconSvg = '<path d="M12 2L2 7l10 5 10-5-10-5z"></path><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path>';
+                    }
+                    
+                    return `
+                        <div class="list-item node-item">
+                            <div style="flex: 1;">
+                                <span class="list-item-name" style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: ${deviceColor};">
+                                        ${iconSvg}
+                                    </svg>
+                                    ${n.name}
+                                    <span style="font-size: 0.65rem; color: #64748b; margin-left: 0.25rem;">(${deviceInfo.label})</span>
+                                </span>
+                                <span style="color: #64748b; font-size: 0.7rem; margin-top: 0.25rem; display: block;">
+                                    ${degree} connection${degree !== 1 ? 's' : ''}
+                                </span>
+                            </div>
+                            <button class="list-item-remove" onclick="removeNode('${n.name}')" title="Remove node">×</button>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            const linksList = document.getElementById('linksList');
+            if (links.length === 0) {
+                linksList.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                                <circle cx="12" cy="10" r="3"></circle>
+                            </svg>
+                        </div>
+                        <h3>No links yet</h3>
+                        <p>Connect nodes using the form above</p>
+                    </div>
+                `;
+            } else {
+                linksList.innerHTML = links.map(l => {
+                    const bandwidth = l.bandwidth ? `${l.bandwidth}Mbps` : 'N/A';
+                    const latencyColor = l.latency < 10 ? '#10b981' : l.latency < 50 ? '#f59e0b' : '#ef4444';
+                    return `
+                        <div class="list-item link-item">
+                            <div style="flex: 1;">
+                                <span class="list-item-name" style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: #3b82f6;">
+                                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                                        <circle cx="12" cy="10" r="3"></circle>
+                                    </svg>
+                                    ${l.source.name} ↔ ${l.target.name}
+                                </span>
+                                <div style="display: flex; gap: 1rem; margin-top: 0.25rem;">
+                                    <span style="color: ${latencyColor}; font-size: 0.7rem; font-weight: 600;">
+                                        ⚡ ${l.latency}ms
+                                    </span>
+                                    <span style="color: #64748b; font-size: 0.7rem;">
+                                        📊 ${bandwidth}
+                                    </span>
+                                </div>
+                            </div>
+                            <button class="list-item-remove" onclick="removeLink('${l.id}')" title="Remove link">×</button>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+
+        // Fit to view
+        function fitToView() {
+            if (!svg || nodes.length === 0) return;
+            
+            const width = svg.node().getBoundingClientRect().width;
+            const height = svg.node().getBoundingClientRect().height;
+            
+            // Calculate bounds from node positions
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            nodes.forEach(n => {
+                if (n.x < minX) minX = n.x;
+                if (n.x > maxX) maxX = n.x;
+                if (n.y < minY) minY = n.y;
+                if (n.y > maxY) maxY = n.y;
+            });
+            
+            const fullWidth = maxX - minX;
+            const fullHeight = maxY - minY;
+            const midX = (minX + maxX) / 2;
+            const midY = (minY + maxY) / 2;
+            
+            const padding = 100;
+            const scale = Math.min(
+                (width - padding * 2) / fullWidth,
+                (height - padding * 2) / fullHeight,
+                1.5
+            );
+            
+            const translate = [width / 2 - scale * midX, height / 2 - scale * midY];
+            
+            svg.transition().duration(750).call(
+                zoomBehavior.transform,
+                d3.zoomIdentity.translate(translate[0], translate[1]).scale(scale)
+            );
+        }
+
+        // Render network
+        function renderNetwork() {
+            svg = d3.select('#network');
+            const width = svg.node().getBoundingClientRect().width;
+            const height = svg.node().getBoundingClientRect().height;
+
+            svg.selectAll('*').remove();
+
+            if (nodes.length === 0) {
+                svg.append('text')
+                    .attr('x', width / 2)
+                    .attr('y', height / 2)
+                    .attr('text-anchor', 'middle')
+                    .attr('fill', '#64748b')
+                    .style('font-size', '18px')
+                    .text('Add nodes and links to build your network');
+                return;
+            }
+
+            g = svg.append('g');
+
+            // Setup zoom
+            zoomBehavior = d3.zoom()
+                .scaleExtent([0.3, 3])
+                .on('zoom', (event) => {
+                    g.attr('transform', event.transform);
+                });
+
+            svg.call(zoomBehavior);
+
+            // Create force simulation (only with active nodes and links)
+            const activeNodesForSim = nodes.filter(n => !failedNodes.has(n.name));
+            const activeLinksForSim = links.filter(l => !failedLinks.has(l.id));
+            
+            // Initialize positions if not set
+            activeNodesForSim.forEach(n => {
+                if (n.x === undefined || n.y === undefined) {
+                    n.x = width / 2 + (Math.random() - 0.5) * 200;
+                    n.y = height / 2 + (Math.random() - 0.5) * 200;
+                }
+            });
+            
+            simulation = d3.forceSimulation(activeNodesForSim)
+                .force('link', d3.forceLink(activeLinksForSim).id(d => d.name).distance(100))
+                .force('charge', d3.forceManyBody().strength(-300))
+                .force('center', d3.forceCenter(width / 2, height / 2))
+                .force('collision', d3.forceCollide().radius(30));
+
+            // Draw links with better styling (filter out failed links)
+            const activeLinks = links.filter(l => !failedLinks.has(l.id));
+            const link = g.append('g')
+                .selectAll('line')
+                .data(activeLinks)
+                .enter().append('line')
+                .attr('class', 'network-link')
+                .attr('stroke', d => {
+                    if (currentPath.length > 1) {
+                        const idx = currentPath.indexOf(d.source.name);
+                        if (idx >= 0 && idx < currentPath.length - 1 && 
+                            currentPath[idx + 1] === d.target.name) {
+                            return '#4ade80';
+                        }
+                        const idx2 = currentPath.indexOf(d.target.name);
+                        if (idx2 >= 0 && idx2 < currentPath.length - 1 && 
+                            currentPath[idx2 + 1] === d.source.name) {
+                            return '#4ade80';
+                        }
+                    }
+                    // Color based on latency
+                    const latency = d.latency || 10;
+                    if (latency < 10) return '#10b981';
+                    if (latency < 50) return '#f59e0b';
+                    return '#ef4444';
+                })
+                .attr('stroke-width', d => {
+                    if (currentPath.length > 1) {
+                        const idx = currentPath.indexOf(d.source.name);
+                        if (idx >= 0 && idx < currentPath.length - 1 && 
+                            currentPath[idx + 1] === d.target.name) {
+                            return 4;
+                        }
+                        const idx2 = currentPath.indexOf(d.target.name);
+                        if (idx2 >= 0 && idx2 < currentPath.length - 1 && 
+                            currentPath[idx2 + 1] === d.source.name) {
+                            return 4;
+                        }
+                    }
+                    // Width based on bandwidth
+                    const bandwidth = d.bandwidth || 100;
+                    if (bandwidth >= 1000) return 3;
+                    if (bandwidth >= 100) return 2.5;
+                    return 2;
+                })
+                .attr('stroke-opacity', d => {
+                    if (currentPath.length > 1) {
+                        const idx = currentPath.indexOf(d.source.name);
+                        if (idx >= 0 && idx < currentPath.length - 1 && 
+                            currentPath[idx + 1] === d.target.name) {
+                            return 1;
+                        }
+                        const idx2 = currentPath.indexOf(d.target.name);
+                        if (idx2 >= 0 && idx2 < currentPath.length - 1 && 
+                            currentPath[idx2 + 1] === d.source.name) {
+                            return 1;
+                        }
+                    }
+                    return 0.7;
+                })
+                .attr('stroke-dasharray', d => {
+                    // Dashed line for high latency
+                    return d.latency > 50 ? '5,5' : 'none';
+                });
+            
+            // Draw failed links separately (red, dashed)
+            const failedLinkGroup = g.append('g')
+                .selectAll('line')
+                .data(links.filter(l => failedLinks.has(l.id)))
+                .enter().append('line')
+                .attr('class', 'network-link failed-link')
+                .attr('stroke', '#ef4444')
+                .attr('stroke-width', 2)
+                .attr('stroke-opacity', 0.3)
+                .attr('stroke-dasharray', '10,5');
+
+            // Draw link labels with better styling (only for active links)
+            const linkLabels = g.append('g')
+                .selectAll('g')
+                .data(activeLinks)
+                .enter().append('g')
+                .attr('class', 'link-label-group');
+
+            // Background for label
+            linkLabels.append('rect')
+                .attr('x', -20)
+                .attr('y', -8)
+                .attr('width', 40)
+                .attr('height', 16)
+                .attr('rx', 4)
+                .attr('fill', 'rgba(15, 23, 42, 0.9)')
+                .attr('stroke', 'rgba(255, 255, 255, 0.2)')
+                .attr('stroke-width', 1);
+
+            // Label text
+            linkLabels.append('text')
+                .attr('text-anchor', 'middle')
+                .attr('dy', '0.35em')
+                .attr('font-size', '10px')
+                .attr('font-weight', '600')
+                .attr('fill', d => {
+                    const latency = d.latency || 10;
+                    if (latency < 10) return '#10b981';
+                    if (latency < 50) return '#f59e0b';
+                    return '#ef4444';
+                })
+                .text(d => `${d.latency}ms`);
+
+            // Draw nodes with router icon style (filter out failed nodes for rendering)
+            const activeNodes = nodes.filter(n => !failedNodes.has(n.name));
+            const nodeGroup = g.append('g')
+                .selectAll('g')
+                .data(activeNodes)
+                .enter().append('g')
+                .attr('class', 'network-node');
+            
+            // Draw failed nodes separately (grayed out)
+            const failedNodeGroup = g.append('g')
+                .selectAll('g')
+                .data(nodes.filter(n => failedNodes.has(n.name)))
+                .enter().append('g')
+                .attr('class', 'network-node failed-node')
+                .style('opacity', 0.3);
+            
+            // Draw failed node circles
+            failedNodeGroup.append('circle')
+                .attr('r', 24)
+                .attr('fill', 'rgba(239, 68, 68, 0.2)')
+                .attr('stroke', 'none');
+            
+            failedNodeGroup.append('circle')
+                .attr('r', 20)
+                .attr('fill', '#ef4444')
+                .attr('stroke', '#fff')
+                .attr('stroke-width', 2.5)
+                .attr('stroke-dasharray', '5,5');
+            
+            failedNodeGroup.append('text')
+                .attr('text-anchor', 'middle')
+                .attr('dy', '0.35em')
+                .attr('font-size', d => {
+                    const type = d.type || 'router';
+                    return type === 'accesspoint' ? '9px' : '11px';
+                })
+                .attr('fill', '#fff')
+                .attr('font-weight', 'bold')
+                .attr('pointer-events', 'none')
+                .text(d => {
+                    const type = d.type || 'router';
+                    return deviceTypes[type]?.icon || 'R';
+                });
+            
+            // Failed node labels
+            const failedLabels = g.append('g')
+                .selectAll('text')
+                .data(nodes.filter(n => failedNodes.has(n.name)))
+                .enter().append('text')
+                .attr('text-anchor', 'middle')
+                .attr('dy', 35)
+                .attr('font-size', '12px')
+                .attr('font-weight', '600')
+                .attr('fill', '#ef4444')
+                .attr('opacity', 0.5)
+                .attr('pointer-events', 'none')
+                .text(d => d.name + ' (FAILED)');
+
+            // Outer circle (glow effect) - non-interactive
+            nodeGroup.append('circle')
+                .attr('r', 24)
+                .attr('fill', d => {
+                    if (d.name === sourceNode) return 'rgba(59, 130, 246, 0.2)';
+                    if (d.name === targetNode) return 'rgba(245, 158, 11, 0.2)';
+                    const type = d.type || 'router';
+                    const color = deviceTypes[type]?.color || '#10b981';
+                    // Convert hex to rgba
+                    const r = parseInt(color.slice(1, 3), 16);
+                    const g = parseInt(color.slice(3, 5), 16);
+                    const b = parseInt(color.slice(5, 7), 16);
+                    return `rgba(${r}, ${g}, ${b}, 0.2)`;
+                })
+                .attr('stroke', 'none')
+                .attr('pointer-events', 'none');  // Glow doesn't need interaction
+
+            // Main node circle - this is the draggable element
+            const node = nodeGroup.append('circle')
+                .attr('r', 20)
+                .attr('fill', d => {
+                    if (d.name === sourceNode) return '#3b82f6';
+                    if (d.name === targetNode) return '#f59e0b';
+                    const type = d.type || 'router';
+                    return deviceTypes[type]?.color || '#10b981';
+                })
+                .attr('stroke', '#fff')
+                .attr('stroke-width', 2.5)
+                .attr('cursor', 'move')
+                .style('pointer-events', 'all');  // Only circle is interactive
+
+            // Device icon inside - based on device type
+            nodeGroup.append('text')
+                .attr('text-anchor', 'middle')
+                .attr('dy', '0.35em')
+                .attr('font-size', d => {
+                    const type = d.type || 'router';
+                    return type === 'accesspoint' ? '9px' : '11px';
+                })
+                .attr('fill', '#fff')
+                .attr('font-weight', 'bold')
+                .attr('pointer-events', 'none')
+                .style('user-select', 'none')
+                .text(d => {
+                    const type = d.type || 'router';
+                    return deviceTypes[type]?.icon || 'R';
+                });
+
+            // Apply drag to the nodeGroup, but only circles will be draggable
+            nodeGroup.call(d3.drag()
+                .on('start', dragstarted)
+                .on('drag', dragged)
+                .on('end', dragended));
+
+            // Draw node labels (clickable for editing, positioned separately)
+            const labels = g.append('g')
+                .selectAll('text')
+                .data(nodes)
+                .enter().append('text')
+                .attr('text-anchor', 'middle')
+                .attr('dy', 35)
+                .attr('font-size', '12px')
+                .attr('font-weight', '600')
+                .attr('fill', '#e2e8f0')
+                .attr('class', 'node-label-text')
+                .attr('pointer-events', 'all')  // Allow clicking for editing
+                .style('cursor', 'text')
+                .style('user-select', 'none')
+                .text(d => d.name)
+                .on('dblclick', function(event, d) {
+                    event.stopPropagation();
+                    startEditNodeName(d.name);
+                });
+
+            // Tooltip
+            const tooltip = d3.select('#tooltip');
+
+            // Add hover events to the circle (not the whole group) to avoid conflicts
+            node.on('mouseover', function(event, d) {
+                event.stopPropagation();  // Prevent event bubbling
+                const nodeLinks = links.filter(l => l.source.name === d.name || l.target.name === d.name);
+                const neighbors = nodeLinks.map(l => l.source.name === d.name ? l.target.name : l.source.name);
+                const avgLatency = nodeLinks.length > 0 
+                    ? (nodeLinks.reduce((sum, l) => sum + (l.latency || 10), 0) / nodeLinks.length).toFixed(1)
+                    : 'N/A';
+                
+                const deviceType = d.type || 'router';
+                const deviceInfo = deviceTypes[deviceType] || deviceTypes.router;
+                tooltip
+                    .html(`<div class="tooltip-title">🔌 ${d.name}</div>
+                           <div class="tooltip-detail">
+                               <strong>Type:</strong> ${deviceInfo.label}<br>
+                               <strong>Connections:</strong> ${neighbors.length}<br>
+                               <strong>Avg Latency:</strong> ${avgLatency}ms<br>
+                               ${neighbors.length > 0 ? '<strong>Neighbors:</strong> ' + neighbors.join(', ') : '<em>No connections</em>'}
+                               <br><em style="font-size: 0.65rem; color: #94a3b8;">Double-click name to edit</em>
+                           </div>`)
+                    .style('left', (event.pageX + 10) + 'px')
+                    .style('top', (event.pageY - 10) + 'px')
+                    .classed('visible', true);
+            })
+            .on('mouseout', function(event) {
+                event.stopPropagation();  // Prevent event bubbling
+                tooltip.classed('visible', false);
+            });
+
+            // Update positions on tick
+            simulation.on('tick', () => {
+                link
+                    .attr('x1', d => d.source.x)
+                    .attr('y1', d => d.source.y)
+                    .attr('x2', d => d.target.x)
+                    .attr('y2', d => d.target.y);
+
+                // Update failed links positions
+                failedLinkGroup
+                    .attr('x1', d => d.source.x)
+                    .attr('y1', d => d.source.y)
+                    .attr('x2', d => d.target.x)
+                    .attr('y2', d => d.target.y);
+
+                linkLabels
+                    .attr('transform', d => {
+                        const midX = (d.source.x + d.target.x) / 2;
+                        const midY = (d.source.y + d.target.y) / 2;
+                        return `translate(${midX}, ${midY})`;
+                    });
+
+                nodeGroup
+                    .attr('transform', d => `translate(${d.x}, ${d.y})`);
+
+                // Update failed nodes positions
+                failedNodeGroup
+                    .attr('transform', d => `translate(${d.x}, ${d.y})`);
+
+                labels
+                    .attr('x', d => d.x)
+                    .attr('y', d => d.y + 35);
+                
+                // Update failed labels positions
+                failedLabels
+                    .attr('x', d => d.x)
+                    .attr('y', d => d.y + 35);
+            });
+        }
+
+        // Drag functions
+        function dragstarted(event, d) {
+            event.sourceEvent.stopPropagation();  // Prevent conflicts
+            if (!event.active) simulation.alphaTarget(0.3).restart();
+            d.fx = d.x;
+            d.fy = d.y;
+            // Find the main circle (not the glow circle) and highlight it
+            d3.select(this).selectAll('circle').filter(function() {
+                return d3.select(this).attr('r') == 20;
+            }).attr('stroke-width', 3);
+        }
+
+        function dragged(event, d) {
+            event.sourceEvent.stopPropagation();  // Prevent conflicts
+            d.fx = event.x;
+            d.fy = event.y;
+        }
+
+        function dragended(event, d) {
+            event.sourceEvent.stopPropagation();  // Prevent conflicts
+            if (!event.active) simulation.alphaTarget(0);
+            d.fx = null;
+            d.fy = null;
+            // Reset stroke width on the main circle
+            d3.select(this).selectAll('circle').filter(function() {
+                return d3.select(this).attr('r') == 20;
+            }).attr('stroke-width', 2.5);
+        }
+
+        // Clear network
+        function clearNetwork() {
+            if (confirm('Clear the entire network? This cannot be undone.')) {
+                nodes = [];
+                links = [];
+                currentPath = [];
+                sourceNode = null;
+                targetNode = null;
+                failedNodes.clear();
+                failedLinks.clear();
+                // Reset device counters
+                deviceCounters = { router: 0, switch: 0, pc: 0, server: 0, accesspoint: 0 };
+                editingNodeName = null;
+                document.getElementById('routeResult').innerHTML = '';
+                updateSelects();
+                updateFailureSelects();
+                updateFailureStatus();
+                updateInfo();
+                updateLists();
+                renderNetwork();
+                showToast('info', 'Network Cleared', 'All devices and links removed');
+            }
+        }
+
+        // Export network to JSON
+        function exportNetwork() {
+            if (nodes.length === 0) {
+                showToast('error', 'Export Failed', 'Network is empty');
+                return;
+            }
+            
+            // Generate network name from nodes or use default
+            const networkName = nodes.length > 0 
+                ? `${nodes.length} Node Network` 
+                : 'Custom Network';
+            
+            const data = {
+                name: networkName,
+                nodes: nodes.map(n => ({ 
+                    name: n.name,
+                    type: n.type || 'router'  // Include device type
+                })),
+                links: links.map(l => {
+                    const linkData = {
+                        from: l.source.name,
+                        to: l.target.name,
+                        latency: l.latency || 10  // Default latency if missing
+                    };
+                    // Only include bandwidth if it's defined and not null
+                    if (l.bandwidth !== null && l.bandwidth !== undefined) {
+                        linkData.bandwidth = l.bandwidth;
+                    }
+                    return linkData;
+                })
+            };
+            
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'network.json';
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('success', 'Exported', 'Network saved as network.json');
+        }
+        
+        // Import network from JSON file
+        function importNetwork(event) {
+            const file = event.target.files[0];
+            if (!file) {
+                return;
+            }
+            
+            // Check file type
+            if (!file.name.toLowerCase().endsWith('.json')) {
+                showToast('error', 'Invalid File', 'Please select a JSON file');
+                event.target.value = ''; // Reset file input
+                return;
+            }
+            
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                try {
+                    const jsonData = JSON.parse(e.target.result);
+                    
+                    // Validate JSON structure
+                    if (!jsonData.nodes || !Array.isArray(jsonData.nodes)) {
+                        throw new Error('Invalid JSON format: missing or invalid "nodes" array');
+                    }
+                    
+                    if (!jsonData.links || !Array.isArray(jsonData.links)) {
+                        throw new Error('Invalid JSON format: missing or invalid "links" array');
+                    }
+                    
+                    // Ask user if they want to clear existing network
+                    let shouldClear = true;
+                    if (nodes.length > 0) {
+                        shouldClear = confirm('Importing a network will replace your current network. Continue?');
+                    }
+                    
+                    if (!shouldClear) {
+                        event.target.value = ''; // Reset file input
+                        return;
+                    }
+                    
+                    // Clear existing network
+                    nodes = [];
+                    links = [];
+                    currentPath = [];
+                    sourceNode = null;
+                    targetNode = null;
+                    failedNodes.clear();
+                    failedLinks.clear();
+                    
+                    // Import nodes
+                    const nodeMap = {}; // Map node names to node objects
+                    jsonData.nodes.forEach((nodeData, index) => {
+                        if (!nodeData.name || typeof nodeData.name !== 'string') {
+                            throw new Error(`Invalid node at index ${index}: missing or invalid "name"`);
+                        }
+                        
+                    const node = {
+                        id: index,
+                        name: nodeData.name,
+                        type: nodeData.type || 'router',  // Import device type
+                        x: Math.random() * 400 + 200,
+                        y: Math.random() * 300 + 150
+                    };
+                    
+                    // Update device counter if type is specified
+                    if (nodeData.type && deviceCounters[nodeData.type] !== undefined) {
+                        const match = nodeData.name.match(/(\d+)$/);
+                        if (match) {
+                            const num = parseInt(match[1]);
+                            if (num > deviceCounters[nodeData.type]) {
+                                deviceCounters[nodeData.type] = num;
+                            }
+                        }
+                    }
+                        
+                        nodes.push(node);
+                        nodeMap[nodeData.name] = node;
+                    });
+                    
+                    // Import links
+                    jsonData.links.forEach((linkData, index) => {
+                        if (!linkData.from || !linkData.to) {
+                            throw new Error(`Invalid link at index ${index}: missing "from" or "to"`);
+                        }
+                        
+                        const fromNode = nodeMap[linkData.from];
+                        const toNode = nodeMap[linkData.to];
+                        
+                        if (!fromNode) {
+                            throw new Error(`Invalid link at index ${index}: node "${linkData.from}" not found`);
+                        }
+                        
+                        if (!toNode) {
+                            throw new Error(`Invalid link at index ${index}: node "${linkData.to}" not found`);
+                        }
+                        
+                        if (fromNode === toNode) {
+                            console.warn(`Skipping self-loop link at index ${index}: ${linkData.from} to itself`);
+                            return;
+                        }
+                        
+                        // Check for duplicate links
+                        const linkExists = links.some(l => 
+                            (l.source.name === linkData.from && l.target.name === linkData.to) ||
+                            (l.source.name === linkData.to && l.target.name === linkData.from)
+                        );
+                        
+                        if (linkExists) {
+                            console.warn(`Skipping duplicate link at index ${index}: ${linkData.from} ↔ ${linkData.to}`);
+                            return;
+                        }
+                        
+                        const link = {
+                            source: fromNode,
+                            target: toNode,
+                            latency: linkData.latency || 10,
+                            bandwidth: linkData.bandwidth !== undefined && linkData.bandwidth !== null ? linkData.bandwidth : null,
+                            id: `${linkData.from}-${linkData.to}`
+                        };
+                        
+                        links.push(link);
+                    });
+                    
+                    // Update UI
+                    updateSelects();
+                    updateFailureSelects();
+                    updateFailureStatus();
+                    updateInfo();
+                    updateLists();
+                    renderNetwork();
+                    
+                    // Show success message
+                    const networkName = jsonData.name || 'Imported Network';
+                    const nodeCount = nodes.length;
+                    const linkCount = links.length;
+                    showToast('success', 'Network Imported', `${networkName}: ${nodeCount} nodes, ${linkCount} links loaded successfully!`);
+                    
+                    // Reset file input so same file can be imported again
+                    event.target.value = '';
+                    
+                } catch (error) {
+                    console.error('Import error:', error);
+                    showToast('error', 'Import Failed', error.message || 'Failed to parse JSON file. Please check the file format.');
+                    event.target.value = ''; // Reset file input
+                }
+            };
+            
+            reader.onerror = function() {
+                showToast('error', 'Read Error', 'Failed to read file. Please try again.');
+                event.target.value = ''; // Reset file input
+            };
+            
+            reader.readAsText(file);
+        }
+
+        // Export to Packet Tracer .pkt format
+        async function exportToPacketTracer() {
+            if (nodes.length === 0) {
+                showToast('error', 'Export Failed', 'Network is empty');
+                return;
+            }
+
+            if (typeof JSZip === 'undefined') {
+                showToast('error', 'Library Error', 'JSZip library not loaded. Please refresh the page.');
+                return;
+            }
+
+            try {
+                const btn = document.getElementById('exportPktBtn');
+                btn.disabled = true;
+                btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle></svg> Generating...';
+
+                // Generate network name
+                const networkName = nodes.length > 0 
+                    ? `${nodes.length} Node Network` 
+                    : 'Custom Network';
+
+                // Calculate device positions
+                const positions = calculateDevicePositions(nodes);
+
+                // Generate project.xml
+                const projectXml = generateProjectXml(nodes, links, networkName, positions);
+
+                // Create ZIP archive
+                const zip = new JSZip();
+                
+                // Add project.xml
+                zip.file('project.xml', projectXml);
+
+                // Create project_files directory and add device configs
+                const projectFiles = zip.folder('project_files');
+                nodes.forEach((node, i) => {
+                    const config = generateDeviceConfig(node);
+                    projectFiles.file(`device_${i}.cfg`, config);
+                });
+
+                // Generate and download .pkt file
+                // Packet Tracer requires STORED compression (no compression)
+                const blob = await zip.generateAsync({ 
+                    type: 'blob',
+                    compression: 'STORE',
+                    compressionOptions: { level: 0 },
+                    streamFiles: false  // Ensure all files are written before generating
+                });
+
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'network.pkt';
+                a.click();
+                URL.revokeObjectURL(url);
+
+                btn.disabled = false;
+                btn.innerHTML = `
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="9" y1="3" x2="9" y2="21"></line>
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    Download .pkt File
+                `;
+
+                showToast('success', 'Download Started', 'network.pkt file is downloading. If Packet Tracer shows an error, click "Download Manual Guide" for step-by-step instructions.');
+
+            } catch (error) {
+                console.error('Export error:', error);
+                console.error('XML generated:', projectXml);
+                showToast('error', 'Export Failed', 'Error generating .pkt file: ' + error.message + '. Try the Manual Guide instead.');
+                const btn = document.getElementById('exportPktBtn');
+                btn.disabled = false;
+                btn.innerHTML = `
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="9" y1="3" x2="9" y2="21"></line>
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    Download .pkt File
+                `;
+            }
+        }
+
+        // Calculate device positions for Packet Tracer
+        function calculateDevicePositions(nodes) {
+            const positions = [];
+            const numNodes = nodes.length;
+
+            if (numNodes === 1) {
+                return [{ x: 960, y: 540 }];
+            }
+
+            if (numNodes <= 4) {
+                const cols = 2;
+                const rows = Math.ceil(numNodes / cols);
+                const spacingX = 400;
+                const spacingY = 300;
+                const startX = 960 - (cols - 1) * spacingX / 2;
+                const startY = 540 - (rows - 1) * spacingY / 2;
+
+                for (let i = 0; i < numNodes; i++) {
+                    const col = i % cols;
+                    const row = Math.floor(i / cols);
+                    positions.push({
+                        x: Math.round(startX + col * spacingX),
+                        y: Math.round(startY + row * spacingY)
+                    });
+                }
+            } else {
+                const radius = Math.min(400, 200 + numNodes * 20);
+                const centerX = 960;
+                const centerY = 540;
+
+                for (let i = 0; i < numNodes; i++) {
+                    const angle = 2 * Math.PI * i / numNodes;
+                    positions.push({
+                        x: Math.round(centerX + radius * Math.cos(angle)),
+                        y: Math.round(centerY + radius * Math.sin(angle))
+                    });
+                }
+            }
+
+            return positions;
+        }
+
+        // Generate project.xml for Packet Tracer
+        function generateProjectXml(nodes, links, networkName, positions) {
+            let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
+            xml += `<project version="1.0" name="${escapeXml(networkName)}" xmlns="http://www.cisco.com/PacketTracer">\n`;
+            xml += '  <workspace width="1920" height="1080" gridSize="25" snapToGrid="true" showGrid="true"/>\n';
+            xml += '  <devices>\n';
+
+            // Add devices
+            nodes.forEach((node, i) => {
+                const pos = positions[i];
+                xml += `    <device id="device_${i}" type="router" name="${escapeXml(node.name)}" x="${pos.x}" y="${pos.y}" z="0">\n`;
+                xml += '      <properties>\n';
+                xml += `        <property name="hostname" value="${escapeXml(node.name)}"/>\n`;
+                xml += '        <property name="model" value="1841"/>\n';
+                xml += '        <property name="state" value="on"/>\n';
+                xml += '      </properties>\n';
+                xml += '    </device>\n';
+            });
+
+            xml += '  </devices>\n';
+            xml += '  <connections>\n';
+
+            // Track port usage
+            const portCounters = {};
+            nodes.forEach((_, i) => {
+                portCounters[`device_${i}`] = 0;
+            });
+
+            // Add connections
+            links.forEach((link, i) => {
+                const fromIdx = nodes.findIndex(n => n.name === link.source.name);
+                const toIdx = nodes.findIndex(n => n.name === link.target.name);
+
+                if (fromIdx === -1 || toIdx === -1) return;
+
+                const fromDeviceId = `device_${fromIdx}`;
+                const toDeviceId = `device_${toIdx}`;
+                const fromPort = portCounters[fromDeviceId];
+                const toPort = portCounters[toDeviceId];
+
+                xml += `    <connection id="conn_${i}" fromDevice="${fromDeviceId}" toDevice="${toDeviceId}" fromPort="FastEthernet0/${fromPort}" toPort="FastEthernet0/${toPort}">\n`;
+                xml += '      <properties>\n';
+                
+                const bandwidth = link.bandwidth && link.bandwidth !== null ? link.bandwidth : 100;
+                xml += `        <property name="bandwidth" value="${bandwidth}"/>\n`;
+                
+                const latency = link.latency || 10;
+                xml += `        <property name="delay" value="${latency}"/>\n`;
+                xml += '        <property name="type" value="copper"/>\n';
+                xml += '      </properties>\n';
+                xml += '    </connection>\n';
+
+                portCounters[fromDeviceId]++;
+                portCounters[toDeviceId]++;
+            });
+
+            xml += '  </connections>\n';
+            xml += '</project>';
+
+            return xml;
+        }
+
+        // Generate device configuration
+        function generateDeviceConfig(node) {
+            return `hostname ${node.name}
+!
+interface FastEthernet0/0
+ no shutdown
+!
+interface FastEthernet0/1
+ no shutdown
+!
+ip routing
+!
+end
+`;
+        }
+
+        // Escape XML special characters
+        function escapeXml(text) {
+            return String(text)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&apos;');
+        }
+
+        // Export manual guide for Packet Tracer
+        function exportManualGuide() {
+            if (nodes.length === 0) {
+                showToast('error', 'Export Failed', 'Network is empty');
+                return;
+            }
+
+            const networkName = nodes.length > 0 
+                ? `${nodes.length} Node Network` 
+                : 'Custom Network';
+
+            let guide = `================================================================================
+CISCO PACKET TRACER - MANUAL NETWORK CREATION GUIDE
+================================================================================
+
+Network: ${networkName}
+Created: ${new Date().toLocaleString()}
+
+This guide will help you recreate your network topology in Cisco Packet Tracer.
+Follow the steps below - it should take about 5-10 minutes.
+
+================================================================================
+STEP 1: ADD ROUTERS
+================================================================================
+
+Add ${nodes.length} router(s) to your workspace:
+
+`;
+
+            nodes.forEach((node, i) => {
+                guide += `${i + 1}. Add Router: ${node.name}\n`;
+                guide += `   - Click on 'Routers' category (bottom device palette)\n`;
+                guide += `   - Select '1841' router model\n`;
+                guide += `   - Click on workspace to place it\n`;
+                guide += `   - Double-click router → Config tab → Display Name: ${node.name}\n\n`;
+            });
+
+            guide += `================================================================================
+STEP 2: CONNECT ROUTERS
+================================================================================
+
+Connect the routers using Copper Straight-Through cables:
+
+`;
+
+            links.forEach((link, i) => {
+                const from = link.source.name;
+                const to = link.target.name;
+                const latency = link.latency || 10;
+                const bandwidth = link.bandwidth || 'not specified';
+                
+                guide += `${i + 1}. Connect: ${from} ↔ ${to}\n`;
+                guide += `   - Click 'Connections' category (lightning bolt icon)\n`;
+                guide += `   - Select 'Copper Straight-Through' cable\n`;
+                guide += `   - Click on ${from}\n`;
+                guide += `   - Select 'FastEthernet0/0' (or next available port)\n`;
+                guide += `   - Click on ${to}\n`;
+                guide += `   - Select 'FastEthernet0/0' (or next available port)\n`;
+                if (bandwidth !== 'not specified') {
+                    guide += `   - Link properties: Latency=${latency}ms, Bandwidth=${bandwidth}Mbps\n\n`;
+                } else {
+                    guide += `   - Link properties: Latency=${latency}ms (bandwidth not specified)\n\n`;
+                }
+            });
+
+            guide += `================================================================================
+STEP 3: CONFIGURE IP ADDRESSES
+================================================================================
+
+Assign IP addresses to each router interface. Use this scheme:
+
+`;
+
+            links.forEach((link, i) => {
+                const from = link.source.name;
+                const to = link.target.name;
+                const subnet = i + 1;
+                
+                guide += `Link ${i + 1}: ${from} ↔ ${to}\n`;
+                guide += `  - ${from} FastEthernet0/0: 192.168.${subnet}.1 / 255.255.255.0\n`;
+                guide += `  - ${to} FastEthernet0/0: 192.168.${subnet}.2 / 255.255.255.0\n\n`;
+                guide += `  To configure:\n`;
+                guide += `    1. Double-click ${from} → Config tab → Interface → FastEthernet0/0\n`;
+                guide += `    2. Set IP: 192.168.${subnet}.1\n`;
+                guide += `    3. Set Subnet Mask: 255.255.255.0\n`;
+                guide += `    4. Repeat for ${to} with IP 192.168.${subnet}.2\n\n`;
+            });
+
+            guide += `================================================================================
+STEP 4: ENABLE ROUTING
+================================================================================
+
+Enable IP routing on all routers:
+
+`;
+
+            nodes.forEach((node, i) => {
+                guide += `${i + 1}. ${node.name}:\n`;
+                guide += `   - Double-click router → CLI tab\n`;
+                guide += `   - Type: enable\n`;
+                guide += `   - Type: configure terminal\n`;
+                guide += `   - Type: ip routing\n`;
+                guide += `   - Type: end\n\n`;
+            });
+
+            guide += `================================================================================
+STEP 5: CONFIGURE ROUTING PROTOCOL (OPTIONAL)
+================================================================================
+
+For dynamic routing, configure OSPF on all routers:
+
+`;
+
+            nodes.forEach((node, i) => {
+                guide += `${i + 1}. ${node.name}:\n`;
+                guide += `   - CLI tab → enable → configure terminal\n`;
+                guide += `   - Type: router ospf 1\n`;
+                guide += `   - Type: network 192.168.0.0 0.0.255.255 area 0\n`;
+                guide += `   - Type: end\n\n`;
+            });
+
+            guide += `================================================================================
+STEP 6: TEST CONNECTIVITY
+================================================================================
+
+Test your network:
+
+1. Add a PC to test connectivity:
+   - Add a PC from the device palette
+   - Connect it to one of your routers
+   - Configure IP address on PC
+   - Use ping command to test connectivity
+
+2. Use Packet Tracer's simulation mode to see packets flow
+
+================================================================================
+NETWORK SUMMARY
+================================================================================
+
+Nodes (${nodes.length}):
+`;
+
+            nodes.forEach(node => {
+                guide += `  - ${node.name}\n`;
+            });
+
+            guide += `\nConnections (${links.length}):\n`;
+            links.forEach(link => {
+                const latency = link.latency || 10;
+                const bandwidth = link.bandwidth;
+                guide += `  - ${link.source.name} ↔ ${link.target.name} (Latency: ${latency}ms`;
+                if (bandwidth) {
+                    guide += `, Bandwidth: ${bandwidth}Mbps`;
+                }
+                guide += `)\n`;
+            });
+
+            guide += `
+================================================================================
+QUICK REFERENCE
+================================================================================
+
+Device Palette Location: Bottom of Packet Tracer window
+Cable Type: Copper Straight-Through (for router-to-router)
+Interface: FastEthernet0/0, FastEthernet0/1, etc.
+IP Scheme: 192.168.X.1 and 192.168.X.2 for each link
+
+TIPS:
+- Use 'Logical' workspace view (tab at top)
+- Right-click devices to access configuration quickly
+- Use 'Inspect' tool to view device details
+- Save your work frequently (Ctrl+S / Cmd+S)
+
+================================================================================
+END OF GUIDE
+================================================================================
+`;
+
+            const blob = new Blob([guide], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'packet_tracer_manual_guide.txt';
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('success', 'Guide Downloaded', 'Manual guide saved. Follow the steps to recreate your network in Packet Tracer.');
+        }
+
+        // Initialize on load
+        init();
+    </script>
+</body>
+</html>

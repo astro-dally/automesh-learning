@@ -1,0 +1,3077 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AutoMesh Packet Tracer Simulator - Network Simulation & Auto-Healing</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #e2e8f0;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        /* Main Layout */
+        .app-container {
+            display: grid;
+            grid-template-columns: 80px 280px 1fr 320px;
+            grid-template-rows: 60px 1fr 200px;
+            height: 100vh;
+            gap: 1px;
+            background: #0a0f1a;
+        }
+
+        /* Header */
+        .header {
+            grid-column: 1 / -1;
+            background: rgba(15, 23, 42, 0.95);
+            border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 1.5rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo {
+            font-size: 1.25rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .header-btn {
+            padding: 0.5rem 1rem;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            background: rgba(59, 130, 246, 0.1);
+            color: #60a5fa;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .header-btn:hover {
+            background: rgba(59, 130, 246, 0.2);
+            border-color: rgba(59, 130, 246, 0.5);
+        }
+
+        .header-btn.active {
+            background: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+
+        /* Device Palette */
+        .device-palette {
+            grid-row: 2 / 4;
+            background: rgba(15, 23, 42, 0.8);
+            border-right: 1px solid rgba(59, 130, 246, 0.2);
+            display: flex;
+            flex-direction: column;
+            padding: 1rem 0.5rem;
+            gap: 0.75rem;
+            overflow-y: auto;
+        }
+
+        .device-item {
+            width: 60px;
+            height: 60px;
+            background: rgba(30, 41, 59, 0.6);
+            border: 2px solid rgba(100, 116, 139, 0.3);
+            border-radius: 8px;
+            cursor: grab;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .device-item:hover {
+            background: rgba(59, 130, 246, 0.2);
+            border-color: #3b82f6;
+            transform: scale(1.05);
+        }
+
+        .device-item:active {
+            cursor: grabbing;
+        }
+
+        .device-icon {
+            font-size: 1.5rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .device-label {
+            font-size: 0.625rem;
+            font-weight: 500;
+            color: #94a3b8;
+            text-align: center;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            grid-row: 2 / 4;
+            background: rgba(15, 23, 42, 0.8);
+            border-right: 1px solid rgba(59, 130, 246, 0.2);
+            overflow-y: auto;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .panel {
+            background: rgba(30, 41, 59, 0.5);
+            border: 1px solid rgba(100, 116, 139, 0.2);
+            border-radius: 8px;
+            padding: 1rem;
+        }
+
+        .panel-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #f1f5f9;
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid rgba(100, 116, 139, 0.2);
+        }
+
+        .form-group {
+            margin-bottom: 0.75rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #cbd5e1;
+            margin-bottom: 0.25rem;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 0.5rem;
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid rgba(100, 116, 139, 0.3);
+            border-radius: 4px;
+            color: #e2e8f0;
+            font-size: 0.8rem;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 0.5rem;
+            border: none;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+            margin-top: 0.5rem;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            margin-top: 0.5rem;
+        }
+
+        /* Canvas */
+        .canvas-container {
+            grid-row: 2 / 3;
+            background: rgba(15, 23, 42, 0.4);
+            position: relative;
+            overflow: hidden;
+        }
+
+        #network-canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Right Sidebar */
+        .right-sidebar {
+            grid-row: 2 / 4;
+            background: rgba(15, 23, 42, 0.8);
+            border-left: 1px solid rgba(59, 130, 246, 0.2);
+            overflow-y: auto;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        /* Console */
+        .console {
+            grid-column: 3 / 4;
+            grid-row: 3 / 4;
+            background: rgba(15, 23, 42, 0.95);
+            border-top: 1px solid rgba(59, 130, 246, 0.2);
+            padding: 1rem;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+        }
+
+        .console-line {
+            padding: 0.25rem 0;
+            border-bottom: 1px solid rgba(100, 116, 139, 0.1);
+        }
+
+        .console-line.info { color: #60a5fa; }
+        .console-line.success { color: #34d399; }
+        .console-line.warning { color: #fbbf24; }
+        .console-line.error { color: #f87171; }
+        .console-line.packet { color: #a78bfa; }
+
+        /* Status Badge */
+        .status-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-badge.healthy {
+            background: rgba(16, 185, 129, 0.2);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .status-badge.warning {
+            background: rgba(251, 191, 36, 0.2);
+            color: #fbbf24;
+            border: 1px solid rgba(251, 191, 36, 0.3);
+        }
+
+        .status-badge.critical {
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        /* Device Stats */
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem;
+            background: rgba(30, 41, 59, 0.4);
+            border-radius: 4px;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: #94a3b8;
+        }
+
+        .stat-value {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #f1f5f9;
+        }
+
+        /* Message Card for Packets */
+        .packet-message {
+            position: absolute;
+            padding: 0.75rem 1rem;
+            background: rgba(139, 92, 246, 0.95);
+            border: 1px solid rgba(167, 139, 250, 0.5);
+            border-radius: 8px;
+            color: white;
+            font-size: 0.875rem;
+            font-weight: 500;
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+            z-index: 1000;
+            animation: slideIn 0.3s ease-out;
+            pointer-events: none;
+        }
+
+        /* Animated Packet Emoji */
+        .packet-emoji {
+            position: absolute;
+            font-size: 28px;
+            z-index: 999;
+            pointer-events: none;
+            filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
+            animation: packetBounce 0.5s ease-in-out infinite;
+            transition: all 0.05s linear;
+        }
+
+        @keyframes packetBounce {
+            0%, 100% { transform: translateY(0px) scale(1); }
+            50% { transform: translateY(-3px) scale(1.05); }
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideOut {
+            from {
+                opacity: 1;
+                transform: translateY(0);
+            }
+            to {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+        }
+
+        .packet-message.fade-out {
+            animation: slideOut 0.3s ease-out forwards;
+        }
+
+        /* Node styles */
+        .node {
+            cursor: pointer;
+        }
+
+        .node.selected {
+            stroke: #fbbf24;
+            stroke-width: 3px;
+        }
+
+        .node.failed {
+            opacity: 0.3;
+            filter: grayscale(100%);
+        }
+
+        .node.healing {
+            opacity: 0.6;
+            filter: hue-rotate(60deg);
+            animation: healingPulse 1s ease-in-out infinite;
+        }
+
+        @keyframes healingPulse {
+            0%, 100% { opacity: 0.6; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(1.05); }
+        }
+
+        .link {
+            stroke: #475569;
+            stroke-width: 2px;
+        }
+
+        .link.active {
+            stroke: #3b82f6;
+            stroke-width: 3px;
+        }
+
+        .link.failed {
+            stroke: #ef4444;
+            stroke-dasharray: 5,5;
+            opacity: 0.3;
+        }
+
+        /* Connection Wire */
+        .connection-wire {
+            stroke: #fbbf24;
+            stroke-width: 3px;
+            stroke-dasharray: 8,4;
+            pointer-events: none;
+            animation: wirePulse 1s infinite;
+        }
+
+        @keyframes wirePulse {
+            0%, 100% { opacity: 0.8; }
+            50% { opacity: 0.4; }
+        }
+
+        /* Tooltip - repositioned closer to device */
+        .tooltip {
+            position: absolute;
+            background: rgba(15, 23, 42, 0.95);
+            border: 1px solid rgba(59, 130, 246, 0.5);
+            border-radius: 8px;
+            padding: 0.75rem;
+            font-size: 0.8rem;
+            pointer-events: none;
+            z-index: 10000;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            display: none;
+            max-width: 250px;
+        }
+
+        .tooltip.show {
+            display: block;
+        }
+
+        /* Device Info Panel - repositioned */
+        .device-info-panel {
+            position: absolute;
+            background: rgba(15, 23, 42, 0.95);
+            border: 2px solid #3b82f6;
+            border-radius: 12px;
+            padding: 1rem;
+            min-width: 280px;
+            max-width: 320px;
+            box-shadow: 0 8px 24px rgba(59, 130, 246, 0.3);
+            z-index: 9999;
+            display: none;
+        }
+
+        .device-info-panel.show {
+            display: block;
+        }
+
+        .device-info-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid rgba(100, 116, 139, 0.3);
+        }
+
+        .device-info-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #60a5fa;
+        }
+
+        .device-info-close {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #f87171;
+            border-radius: 4px;
+            padding: 0.25rem 0.5rem;
+            cursor: pointer;
+            font-size: 0.75rem;
+            transition: all 0.2s;
+        }
+
+        .device-info-close:hover {
+            background: rgba(239, 68, 68, 0.3);
+        }
+
+        .device-name-input {
+            width: 100%;
+            padding: 0.5rem;
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid rgba(100, 116, 139, 0.3);
+            border-radius: 4px;
+            color: #e2e8f0;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .device-name-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+
+        /* Auto-heal indicator */
+        .auto-heal-indicator {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            padding: 0.75rem 1rem;
+            background: rgba(16, 185, 129, 0.2);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #34d399;
+            display: none;
+            animation: pulse 2s infinite;
+        }
+
+        .auto-heal-indicator.active {
+            display: block;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        /* Connection mode indicator */
+        .connection-mode {
+            position: absolute;
+            top: 1rem;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 0.5rem 1rem;
+            background: rgba(59, 130, 246, 0.2);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 8px;
+            font-size: 0.8rem;
+            color: #60a5fa;
+            display: none;
+        }
+
+        .connection-mode.active {
+            display: block;
+        }
+
+        /* Scrollbar styles */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.5);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(100, 116, 139, 0.5);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(100, 116, 139, 0.7);
+        }
+
+        /* Templates Modal */
+        .templates-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            z-index: 10000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .templates-modal.show {
+            display: flex;
+        }
+
+        .templates-container {
+            background: rgba(15, 23, 42, 0.95);
+            border: 2px solid rgba(59, 130, 246, 0.3);
+            border-radius: 16px;
+            max-width: 1200px;
+            max-height: 90vh;
+            width: 100%;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .templates-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid rgba(100, 116, 139, 0.3);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .templates-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #60a5fa;
+        }
+
+        .templates-close {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #f87171;
+            border-radius: 6px;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .templates-close:hover {
+            background: rgba(239, 68, 68, 0.3);
+        }
+
+        .templates-grid {
+            padding: 1.5rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 1.5rem;
+            overflow-y: auto;
+        }
+
+        .template-card {
+            background: rgba(30, 41, 59, 0.6);
+            border: 2px solid rgba(100, 116, 139, 0.3);
+            border-radius: 12px;
+            padding: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .template-card:hover {
+            border-color: #3b82f6;
+            background: rgba(59, 130, 246, 0.1);
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(59, 130, 246, 0.3);
+        }
+
+        .template-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .template-name {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #f1f5f9;
+            margin-bottom: 0.5rem;
+        }
+
+        .template-description {
+            font-size: 0.875rem;
+            color: #94a3b8;
+            margin-bottom: 1rem;
+            line-height: 1.5;
+        }
+
+        .template-stats {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .template-stat {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .template-stat-label {
+            font-size: 0.7rem;
+            color: #64748b;
+            text-transform: uppercase;
+        }
+
+        .template-stat-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #60a5fa;
+        }
+
+        .template-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .template-badge.mesh {
+            background: rgba(16, 185, 129, 0.2);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .template-badge.hybrid {
+            background: rgba(251, 191, 36, 0.2);
+            color: #fbbf24;
+            border: 1px solid rgba(251, 191, 36, 0.3);
+        }
+
+        .template-badge.enterprise {
+            background: rgba(139, 92, 246, 0.2);
+            color: #a78bfa;
+            border: 1px solid rgba(139, 92, 246, 0.3);
+        }
+
+        /* Confirmation Modal */
+        .confirm-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(8px);
+            z-index: 10001;
+            display: none;
+            align-items: flex-start;
+            justify-content: center;
+            padding-top: 100px;
+            animation: fadeIn 0.2s ease-out;
+        }
+
+        .confirm-modal.show {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .confirm-dialog {
+            background: rgba(15, 23, 42, 0.98);
+            border: 2px solid rgba(239, 68, 68, 0.5);
+            border-radius: 16px;
+            padding: 2rem;
+            max-width: 450px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            animation: slideDown 0.3s ease-out;
+        }
+
+        .confirm-icon {
+            font-size: 3rem;
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+
+        .confirm-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #f1f5f9;
+            text-align: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .confirm-message {
+            font-size: 1rem;
+            color: #94a3b8;
+            text-align: center;
+            line-height: 1.6;
+            margin-bottom: 2rem;
+        }
+
+        .confirm-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+        }
+
+        .confirm-btn {
+            padding: 0.75rem 2rem;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .confirm-btn-cancel {
+            background: rgba(100, 116, 139, 0.2);
+            color: #cbd5e1;
+            border: 1px solid rgba(100, 116, 139, 0.3);
+        }
+
+        .confirm-btn-cancel:hover {
+            background: rgba(100, 116, 139, 0.3);
+            border-color: #64748b;
+        }
+
+        .confirm-btn-confirm {
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.4);
+        }
+
+        .confirm-btn-confirm:hover {
+            background: rgba(239, 68, 68, 0.3);
+            border-color: #ef4444;
+            transform: scale(1.02);
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-left">
+                <div class="logo">
+                    <span>⚡</span>
+                    <span>AutoMesh Packet Tracer</span>
+                </div>
+            </div>
+            <div class="header-controls">
+                <button class="header-btn" id="btn-templates" title="Network Templates">
+                    <span>📚</span>
+                    <span>Templates</span>
+                </button>
+                <button class="header-btn" id="btn-simulation" title="Start/Stop Simulation">
+                    <span>▶️</span>
+                    <span>Start Simulation</span>
+                </button>
+                <button class="header-btn" id="btn-auto-heal" title="Enable/Disable Auto-Healing">
+                    <span>🔄</span>
+                    <span>Auto-Heal: OFF</span>
+                </button>
+                <button class="header-btn" id="btn-export-image" title="Export as Image">
+                    <span>📷</span>
+                    <span>Export Image</span>
+                </button>
+                <button class="header-btn" id="btn-clear" title="Clear Network">
+                    <span>🗑️</span>
+                    <span>Clear</span>
+                </button>
+                <button class="header-btn" id="btn-export" title="Export Network">
+                    <span>💾</span>
+                    <span>Export</span>
+                </button>
+                <button class="header-btn" id="btn-import" title="Import Network">
+                    <span>📂</span>
+                    <span>Import</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Device Palette -->
+        <div class="device-palette">
+            <div class="device-item" data-device-type="router" draggable="true">
+                <div class="device-icon">🔀</div>
+                <div class="device-label">Router</div>
+            </div>
+            <div class="device-item" data-device-type="switch" draggable="true">
+                <div class="device-icon">⚡</div>
+                <div class="device-label">Switch</div>
+            </div>
+            <div class="device-item" data-device-type="pc" draggable="true">
+                <div class="device-icon">💻</div>
+                <div class="device-label">PC</div>
+            </div>
+            <div class="device-item" data-device-type="server" draggable="true">
+                <div class="device-icon">🖥️</div>
+                <div class="device-label">Server</div>
+            </div>
+            <div class="device-item" data-device-type="cloud" draggable="true">
+                <div class="device-icon">☁️</div>
+                <div class="device-label">Cloud</div>
+            </div>
+            <div class="device-item" data-device-type="firewall" draggable="true">
+                <div class="device-icon">🛡️</div>
+                <div class="device-label">Firewall</div>
+            </div>
+            <div class="device-item" data-device-type="ap" draggable="true">
+                <div class="device-icon">📡</div>
+                <div class="device-label">Access Point</div>
+            </div>
+        </div>
+
+        <!-- Left Sidebar -->
+        <div class="sidebar">
+            <div class="panel">
+                <div class="panel-title">Network Configuration</div>
+                <div class="form-group">
+                    <label>Network Name</label>
+                    <input type="text" id="network-name" placeholder="My Network" value="AutoMesh Network">
+                </div>
+                <div class="form-group">
+                    <label>Connection Type</label>
+                    <select id="connection-type">
+                        <option value="ethernet">Ethernet</option>
+                        <option value="fiber">Fiber Optic</option>
+                        <option value="wireless">Wireless</option>
+                    </select>
+                </div>
+                <button class="btn btn-primary" id="btn-add-connection">
+                    🔗 Enable Wire Mode
+                </button>
+            </div>
+
+            <div class="panel">
+                <div class="panel-title">Packet Simulation</div>
+                <div class="form-group">
+                    <label>Source Device</label>
+                    <select id="packet-source">
+                        <option value="">Select Source</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Destination Device</label>
+                    <select id="packet-dest">
+                        <option value="">Select Destination</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Packet Type</label>
+                    <select id="packet-type">
+                        <option value="icmp">ICMP (Ping)</option>
+                        <option value="tcp">TCP</option>
+                        <option value="udp">UDP</option>
+                        <option value="http">HTTP</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Packet Size (bytes)</label>
+                    <input type="number" id="packet-size" value="64" min="64" max="1500">
+                </div>
+                <button class="btn btn-primary" id="btn-send-packet">
+                    📤 Send Packet
+                </button>
+            </div>
+
+            <div class="panel">
+                <div class="panel-title">Failure Testing</div>
+                <div class="form-group">
+                    <label>Select Device to Fail</label>
+                    <select id="fail-device">
+                        <option value="">Select Device</option>
+                    </select>
+                </div>
+                <button class="btn btn-danger" id="btn-fail-device">
+                    ❌ Simulate Failure
+                </button>
+                <button class="btn btn-success" id="btn-recover-device">
+                    ✅ Recover Device
+                </button>
+            </div>
+        </div>
+
+        <!-- Canvas -->
+        <div class="canvas-container">
+            <svg id="network-canvas"></svg>
+            <div class="auto-heal-indicator" id="auto-heal-indicator">
+                🔄 Auto-Healing Network...
+            </div>
+            <div class="connection-mode" id="connection-mode">
+                Click a device to start wiring
+            </div>
+            <div class="tooltip" id="tooltip"></div>
+            <div class="device-info-panel" id="device-info-panel">
+                <div class="device-info-header">
+                    <div class="device-info-title">Device Information</div>
+                    <button class="device-info-close" id="close-device-info">✕</button>
+                </div>
+                <div id="device-info-content"></div>
+            </div>
+            
+            <!-- Zoom Controls -->
+            <div class="zoom-controls">
+                <button class="zoom-btn" id="zoom-in" title="Zoom In">+</button>
+                <div class="zoom-level" id="zoom-level">100%</div>
+                <button class="zoom-btn" id="zoom-out" title="Zoom Out">−</button>
+                <button class="zoom-btn" id="zoom-reset" title="Fit to Screen" style="font-size: 1rem;">⊙</button>
+            </div>
+        </div>
+
+        <!-- Right Sidebar -->
+        <div class="right-sidebar">
+            <div class="panel">
+                <div class="panel-title">Network Status</div>
+                <div class="stat-item">
+                    <span class="stat-label">Status</span>
+                    <span class="status-badge healthy" id="network-status">Healthy</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Total Devices</span>
+                    <span class="stat-value" id="stat-devices">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Active Connections</span>
+                    <span class="stat-value" id="stat-connections">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Failed Devices</span>
+                    <span class="stat-value" id="stat-failed">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Packets Sent</span>
+                    <span class="stat-value" id="stat-packets">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Auto-Healing</span>
+                    <span class="stat-value" id="stat-autohealing">Disabled</span>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-title">Selected Device</div>
+                <div id="device-info">
+                    <p style="color: #64748b; font-size: 0.8rem;">Click a device to view details or double-click to rename</p>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-title">Quick Actions</div>
+                <button class="btn btn-primary" id="btn-create-mesh" style="margin-bottom: 0.5rem;">
+                    🕸️ Create Mesh Network
+                </button>
+                <button class="btn btn-primary" id="btn-test-all" style="margin-bottom: 0.5rem;">
+                    🧪 Test All Connections
+                </button>
+                <button class="btn btn-primary" id="btn-optimize">
+                    ⚡ Optimize Network
+                </button>
+            </div>
+        </div>
+
+        <!-- Console -->
+        <div class="console" id="console">
+            <div class="console-line info">🚀 AutoMesh Packet Tracer Simulator initialized</div>
+            <div class="console-line info">📝 Drag devices from the palette to the canvas</div>
+            <div class="console-line info">🔗 Click "Enable Wire Mode" then click devices to wire them together</div>
+            <div class="console-line info">🔄 Enable Auto-Heal to test self-healing mesh networks</div>
+        </div>
+    </div>
+
+    <input type="file" id="file-input" style="display: none;" accept=".json">
+
+    <!-- Templates Modal -->
+    <div class="templates-modal" id="templates-modal">
+        <div class="templates-container">
+            <div class="templates-header">
+                <div class="templates-title">📚 Network Templates Library</div>
+                <button class="templates-close" id="close-templates">✕ Close</button>
+            </div>
+            <div class="templates-grid" id="templates-grid">
+                <!-- Templates will be dynamically inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div class="confirm-modal" id="confirm-modal">
+        <div class="confirm-dialog">
+            <div class="confirm-icon" id="confirm-icon">⚠️</div>
+            <div class="confirm-title" id="confirm-title">Confirm Action</div>
+            <div class="confirm-message" id="confirm-message">Are you sure you want to proceed?</div>
+            <div class="confirm-actions">
+                <button class="confirm-btn confirm-btn-cancel" id="confirm-cancel">
+                    <span>✕</span>
+                    <span>Cancel</span>
+                </button>
+                <button class="confirm-btn confirm-btn-confirm" id="confirm-confirm">
+                    <span>✓</span>
+                    <span>Confirm</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Network Templates Library
+        const NETWORK_TEMPLATES = [
+            {
+                id: 'university-campus',
+                name: 'University Campus Network',
+                icon: '🎓',
+                description: 'Complete university campus mesh network with 50 nodes covering departments, labs, library, and dorms',
+                capacity: 50,
+                devices: 50,
+                connections: 120,
+                type: 'mesh',
+                category: 'enterprise',
+                generate: function() {
+                    const devices = [];
+                    const connections = [];
+                    
+                    // Core network - centered
+                    devices.push({ id: 'core-switch-1', type: 'switch', x: 600, y: 350 });
+                    devices.push({ id: 'core-switch-2', type: 'switch', x: 800, y: 350 });
+                    devices.push({ id: 'core-router', type: 'router', x: 700, y: 250 });
+                    devices.push({ id: 'firewall', type: 'firewall', x: 700, y: 150 });
+                    devices.push({ id: 'internet', type: 'cloud', x: 700, y: 50 });
+                    
+                    // Building A - Engineering (10 nodes) - left side
+                    for (let i = 0; i < 10; i++) {
+                        devices.push({ 
+                            id: `eng-lab-${i+1}`, 
+                            type: 'pc', 
+                            x: 50 + (i % 5) * 100, 
+                            y: 450 + Math.floor(i / 5) * 100 
+                        });
+                    }
+                    
+                    // Building B - Sciences (10 nodes) - right side
+                    for (let i = 0; i < 10; i++) {
+                        devices.push({ 
+                            id: `sci-lab-${i+1}`, 
+                            type: 'pc', 
+                            x: 950 + (i % 5) * 100, 
+                            y: 450 + Math.floor(i / 5) * 100 
+                        });
+                    }
+                    
+                    // Library (8 nodes) - top spread
+                    for (let i = 0; i < 8; i++) {
+                        devices.push({ 
+                            id: `library-${i+1}`, 
+                            type: 'pc', 
+                            x: 250 + (i % 4) * 100, 
+                            y: 80 + Math.floor(i / 4) * 100 
+                        });
+                    }
+                    
+                    // Dorm A (7 nodes) - bottom left
+                    for (let i = 0; i < 7; i++) {
+                        devices.push({ 
+                            id: `dorm-a-${i+1}`, 
+                            type: 'pc', 
+                            x: 50 + i * 90, 
+                            y: 650 
+                        });
+                    }
+                    
+                    // Dorm B (7 nodes) - bottom right
+                    for (let i = 0; i < 7; i++) {
+                        devices.push({ 
+                            id: `dorm-b-${i+1}`, 
+                            type: 'pc', 
+                            x: 850 + i * 90, 
+                            y: 650 
+                        });
+                    }
+                    
+                    // Servers (3 nodes) - near core
+                    devices.push({ id: 'file-server', type: 'server', x: 550, y: 450 });
+                    devices.push({ id: 'web-server', type: 'server', x: 700, y: 450 });
+                    devices.push({ id: 'db-server', type: 'server', x: 850, y: 450 });
+                    
+                    // Department switches (4 nodes)
+                    devices.push({ id: 'eng-switch', type: 'switch', x: 250, y: 500 });
+                    devices.push({ id: 'sci-switch', type: 'switch', x: 1150, y: 500 });
+                    devices.push({ id: 'lib-switch', type: 'switch', x: 450, y: 140 });
+                    devices.push({ id: 'dorm-switch', type: 'switch', x: 700, y: 600 });
+                    
+                    // Core connections
+                    connections.push({ source: 'internet', target: 'firewall', type: 'fiber' });
+                    connections.push({ source: 'firewall', target: 'core-router', type: 'fiber' });
+                    connections.push({ source: 'core-router', target: 'core-switch-1', type: 'fiber' });
+                    connections.push({ source: 'core-router', target: 'core-switch-2', type: 'fiber' });
+                    connections.push({ source: 'core-switch-1', target: 'core-switch-2', type: 'fiber' });
+                    
+                    // Connect department switches to core (redundant)
+                    ['eng-switch', 'sci-switch', 'lib-switch', 'dorm-switch'].forEach(sw => {
+                        connections.push({ source: sw, target: 'core-switch-1', type: 'fiber' });
+                        connections.push({ source: sw, target: 'core-switch-2', type: 'fiber' });
+                    });
+                    
+                    // Connect servers to core
+                    ['file-server', 'web-server', 'db-server'].forEach(srv => {
+                        connections.push({ source: srv, target: 'core-switch-1', type: 'fiber' });
+                        connections.push({ source: srv, target: 'core-switch-2', type: 'fiber' });
+                    });
+                    
+                    // Connect PCs to department switches
+                    for (let i = 0; i < 10; i++) {
+                        connections.push({ source: `eng-lab-${i+1}`, target: 'eng-switch', type: 'ethernet' });
+                        connections.push({ source: `sci-lab-${i+1}`, target: 'sci-switch', type: 'ethernet' });
+                    }
+                    for (let i = 0; i < 8; i++) {
+                        connections.push({ source: `library-${i+1}`, target: 'lib-switch', type: 'ethernet' });
+                    }
+                    for (let i = 0; i < 7; i++) {
+                        connections.push({ source: `dorm-a-${i+1}`, target: 'dorm-switch', type: 'wireless' });
+                        connections.push({ source: `dorm-b-${i+1}`, target: 'dorm-switch', type: 'wireless' });
+                    }
+                    
+                    return { name: 'University Campus Network', devices, connections };
+                }
+            },
+            {
+                id: 'corporate-office',
+                name: 'Corporate Office Network',
+                icon: '🏢',
+                description: 'Enterprise office mesh network with 50 nodes across departments, meeting rooms, and server infrastructure',
+                capacity: 50,
+                devices: 50,
+                connections: 115,
+                type: 'hybrid',
+                category: 'enterprise',
+                generate: function() {
+                    const devices = [];
+                    const connections = [];
+                    
+                    // Core infrastructure - centered
+                    devices.push({ id: 'core-router-1', type: 'router', x: 600, y: 300 });
+                    devices.push({ id: 'core-router-2', type: 'router', x: 800, y: 300 });
+                    devices.push({ id: 'firewall', type: 'firewall', x: 700, y: 200 });
+                    devices.push({ id: 'internet-gateway', type: 'cloud', x: 700, y: 100 });
+                    
+                    // Department switches - well spaced
+                    devices.push({ id: 'hr-switch', type: 'switch', x: 150, y: 400 });
+                    devices.push({ id: 'finance-switch', type: 'switch', x: 400, y: 400 });
+                    devices.push({ id: 'it-switch', type: 'switch', x: 700, y: 450 });
+                    devices.push({ id: 'sales-switch', type: 'switch', x: 1000, y: 400 });
+                    devices.push({ id: 'exec-switch', type: 'switch', x: 1250, y: 400 });
+                    
+                    // HR Department (8 PCs) - far left
+                    for (let i = 0; i < 8; i++) {
+                        devices.push({ id: `hr-pc-${i+1}`, type: 'pc', x: 50 + (i % 4) * 80, y: 500 + Math.floor(i / 4) * 90 });
+                    }
+                    
+                    // Finance Department (8 PCs)
+                    for (let i = 0; i < 8; i++) {
+                        devices.push({ id: `fin-pc-${i+1}`, type: 'pc', x: 320 + (i % 4) * 80, y: 500 + Math.floor(i / 4) * 90 });
+                    }
+                    
+                    // IT Department (8 PCs) - center bottom
+                    for (let i = 0; i < 8; i++) {
+                        devices.push({ id: `it-pc-${i+1}`, type: 'pc', x: 600 + (i % 4) * 80, y: 550 + Math.floor(i / 4) * 90 });
+                    }
+                    
+                    // Sales Department (8 PCs)
+                    for (let i = 0; i < 8; i++) {
+                        devices.push({ id: `sales-pc-${i+1}`, type: 'pc', x: 920 + (i % 4) * 80, y: 500 + Math.floor(i / 4) * 90 });
+                    }
+                    
+                    // Executive (4 PCs) - far right
+                    for (let i = 0; i < 4; i++) {
+                        devices.push({ id: `exec-pc-${i+1}`, type: 'pc', x: 1180 + (i % 2) * 90, y: 500 + Math.floor(i / 2) * 90 });
+                    }
+                    
+                    // Servers (6) - top area, well spaced
+                    devices.push({ id: 'file-server', type: 'server', x: 500, y: 180 });
+                    devices.push({ id: 'email-server', type: 'server', x: 630, y: 180 });
+                    devices.push({ id: 'database-server', type: 'server', x: 770, y: 180 });
+                    devices.push({ id: 'backup-server', type: 'server', x: 900, y: 180 });
+                    devices.push({ id: 'web-server', type: 'server', x: 565, y: 80 });
+                    devices.push({ id: 'app-server', type: 'server', x: 835, y: 80 });
+                    
+                    // Core mesh connections
+                    connections.push({ source: 'internet-gateway', target: 'firewall', type: 'fiber' });
+                    connections.push({ source: 'firewall', target: 'core-router-1', type: 'fiber' });
+                    connections.push({ source: 'firewall', target: 'core-router-2', type: 'fiber' });
+                    connections.push({ source: 'core-router-1', target: 'core-router-2', type: 'fiber' });
+                    
+                    // Connect switches to both core routers (redundancy)
+                    ['hr-switch', 'finance-switch', 'it-switch', 'sales-switch', 'exec-switch'].forEach(sw => {
+                        connections.push({ source: sw, target: 'core-router-1', type: 'fiber' });
+                        connections.push({ source: sw, target: 'core-router-2', type: 'fiber' });
+                    });
+                    
+                    // Connect servers
+                    ['file-server', 'email-server', 'database-server', 'backup-server', 'web-server', 'app-server'].forEach(srv => {
+                        connections.push({ source: srv, target: 'core-router-1', type: 'fiber' });
+                    });
+                    
+                    // Connect department PCs
+                    for (let i = 0; i < 8; i++) {
+                        connections.push({ source: `hr-pc-${i+1}`, target: 'hr-switch', type: 'ethernet' });
+                        connections.push({ source: `fin-pc-${i+1}`, target: 'finance-switch', type: 'ethernet' });
+                        connections.push({ source: `it-pc-${i+1}`, target: 'it-switch', type: 'ethernet' });
+                        connections.push({ source: `sales-pc-${i+1}`, target: 'sales-switch', type: 'ethernet' });
+                    }
+                    for (let i = 0; i < 4; i++) {
+                        connections.push({ source: `exec-pc-${i+1}`, target: 'exec-switch', type: 'ethernet' });
+                    }
+                    
+                    return { name: 'Corporate Office Network', devices, connections };
+                }
+            },
+            {
+                id: 'data-center',
+                name: 'Data Center Mesh',
+                icon: '🖥️',
+                description: 'Highly redundant data center network with 40 servers in a full mesh topology for maximum availability',
+                capacity: 50,
+                devices: 45,
+                connections: 90,
+                type: 'mesh',
+                category: 'enterprise',
+                generate: function() {
+                    const devices = [];
+                    const connections = [];
+                    
+                    // Core network layer - centered top
+                    devices.push({ id: 'core-switch-1', type: 'switch', x: 600, y: 150 });
+                    devices.push({ id: 'core-switch-2', type: 'switch', x: 800, y: 150 });
+                    devices.push({ id: 'edge-router', type: 'router', x: 700, y: 70 });
+                    devices.push({ id: 'firewall', type: 'firewall', x: 700, y: 10 });
+                    
+                    // TOR (Top of Rack) switches - 8 racks, well spaced
+                    for (let i = 0; i < 8; i++) {
+                        devices.push({ 
+                            id: `tor-switch-${i+1}`, 
+                            type: 'switch', 
+                            x: 100 + i * 170, 
+                            y: 300 
+                        });
+                    }
+                    
+                    // Servers - 5 per rack = 40 servers, much better spacing
+                    for (let rack = 0; rack < 8; rack++) {
+                        for (let srv = 0; srv < 5; srv++) {
+                            devices.push({ 
+                                id: `server-r${rack+1}-s${srv+1}`, 
+                                type: 'server', 
+                                x: 40 + rack * 170 + (srv % 3) * 60, 
+                                y: 420 + Math.floor(srv / 3) * 130 
+                            });
+                        }
+                    }
+                    
+                    // Core mesh
+                    connections.push({ source: 'firewall', target: 'edge-router', type: 'fiber' });
+                    connections.push({ source: 'edge-router', target: 'core-switch-1', type: 'fiber' });
+                    connections.push({ source: 'edge-router', target: 'core-switch-2', type: 'fiber' });
+                    connections.push({ source: 'core-switch-1', target: 'core-switch-2', type: 'fiber' });
+                    
+                    // Connect TOR switches to core (full mesh for redundancy)
+                    for (let i = 0; i < 8; i++) {
+                        connections.push({ source: `tor-switch-${i+1}`, target: 'core-switch-1', type: 'fiber' });
+                        connections.push({ source: `tor-switch-${i+1}`, target: 'core-switch-2', type: 'fiber' });
+                    }
+                    
+                    // Connect servers to TOR switches
+                    for (let rack = 0; rack < 8; rack++) {
+                        for (let srv = 0; srv < 5; srv++) {
+                            connections.push({ 
+                                source: `server-r${rack+1}-s${srv+1}`, 
+                                target: `tor-switch-${rack+1}`, 
+                                type: 'fiber' 
+                            });
+                        }
+                    }
+                    
+                    return { name: 'Data Center Mesh', devices, connections };
+                }
+            },
+            {
+                id: 'smart-city-iot',
+                name: 'Smart City IoT Network',
+                icon: '🏙️',
+                description: 'IoT mesh network with 50 sensors monitoring traffic, environment, and utilities across the city',
+                capacity: 50,
+                devices: 50,
+                connections: 85,
+                type: 'mesh',
+                category: 'hybrid',
+                generate: function() {
+                    const devices = [];
+                    const connections = [];
+                    
+                    // Central gateway and cloud - center
+                    devices.push({ id: 'city-gateway', type: 'router', x: 700, y: 350 });
+                    devices.push({ id: 'cloud-platform', type: 'cloud', x: 700, y: 100 });
+                    devices.push({ id: 'data-server', type: 'server', x: 600, y: 220 });
+                    devices.push({ id: 'control-server', type: 'server', x: 800, y: 220 });
+                    
+                    // Zone gateways (4 city zones) - cardinal directions
+                    devices.push({ id: 'zone-north-gw', type: 'router', x: 700, y: 520 });
+                    devices.push({ id: 'zone-south-gw', type: 'router', x: 700, y: 180 });
+                    devices.push({ id: 'zone-east-gw', type: 'router', x: 1050, y: 350 });
+                    devices.push({ id: 'zone-west-gw', type: 'router', x: 350, y: 350 });
+                    
+                    // Traffic sensors (12) - bottom area, well spaced
+                    for (let i = 0; i < 12; i++) {
+                        devices.push({ 
+                            id: `traffic-sensor-${i+1}`, 
+                            type: 'pc', 
+                            x: 100 + (i % 6) * 120, 
+                            y: 600 + Math.floor(i / 6) * 100 
+                        });
+                    }
+                    
+                    // Environmental sensors (12) - top area, well spaced
+                    for (let i = 0; i < 12; i++) {
+                        devices.push({ 
+                            id: `env-sensor-${i+1}`, 
+                            type: 'pc', 
+                            x: 100 + (i % 6) * 120, 
+                            y: 10 + Math.floor(i / 6) * 80 
+                        });
+                    }
+                    
+                    // Utility meters (12) - left and right columns
+                    for (let i = 0; i < 12; i++) {
+                        devices.push({ 
+                            id: `utility-meter-${i+1}`, 
+                            type: 'pc', 
+                            x: i < 6 ? 50 : 1350, 
+                            y: 200 + (i % 6) * 80 
+                        });
+                    }
+                    
+                    // Streetlight controllers (8) - middle horizontal line
+                    for (let i = 0; i < 8; i++) {
+                        devices.push({ 
+                            id: `light-ctrl-${i+1}`, 
+                            type: 'pc', 
+                            x: 300 + i * 130, 
+                            y: 350 
+                        });
+                    }
+                    
+                    // Core connections
+                    connections.push({ source: 'cloud-platform', target: 'city-gateway', type: 'fiber' });
+                    connections.push({ source: 'data-server', target: 'city-gateway', type: 'fiber' });
+                    connections.push({ source: 'control-server', target: 'city-gateway', type: 'fiber' });
+                    
+                    // Zone gateways to central
+                    ['zone-north-gw', 'zone-south-gw', 'zone-east-gw', 'zone-west-gw'].forEach(gw => {
+                        connections.push({ source: gw, target: 'city-gateway', type: 'wireless' });
+                    });
+                    
+                    // Mesh between zone gateways
+                    connections.push({ source: 'zone-north-gw', target: 'zone-east-gw', type: 'wireless' });
+                    connections.push({ source: 'zone-north-gw', target: 'zone-west-gw', type: 'wireless' });
+                    connections.push({ source: 'zone-south-gw', target: 'zone-east-gw', type: 'wireless' });
+                    connections.push({ source: 'zone-south-gw', target: 'zone-west-gw', type: 'wireless' });
+                    
+                    // Connect sensors (distributed across zones)
+                    for (let i = 0; i < 12; i++) {
+                        const zone = ['zone-north-gw', 'zone-south-gw', 'zone-east-gw', 'zone-west-gw'][i % 4];
+                        connections.push({ source: `traffic-sensor-${i+1}`, target: zone, type: 'wireless' });
+                        connections.push({ source: `env-sensor-${i+1}`, target: zone, type: 'wireless' });
+                        connections.push({ source: `utility-meter-${i+1}`, target: zone, type: 'wireless' });
+                    }
+                    
+                    for (let i = 0; i < 8; i++) {
+                        const zone = ['zone-north-gw', 'zone-south-gw'][i % 2];
+                        connections.push({ source: `light-ctrl-${i+1}`, target: zone, type: 'wireless' });
+                    }
+                    
+                    return { name: 'Smart City IoT Network', devices, connections };
+                }
+            }
+        ];
+
+        // Network Simulator Core
+        class NetworkSimulator {
+            constructor() {
+                this.devices = [];
+                this.connections = [];
+                this.packets = [];
+                this.selectedDevice = null;
+                this.connectionMode = false;
+                this.connectionSource = null;
+                this.wirePath = null;
+                this.simulationRunning = false;
+                this.autoHealEnabled = false;
+                this.deviceCounter = { router: 0, switch: 0, pc: 0, server: 0, cloud: 0, firewall: 0, ap: 0 };
+                this.packetCounter = 0;
+                this.failedDevices = new Set();
+                this.failedConnections = new Set();
+                this.healingTimers = new Map(); // Track healing timers for failed devices
+                this.healingDevices = new Set(); // Track devices currently healing
+                this.healingDelay = 5000; // 5 seconds to auto-heal
+                
+                // Zoom state
+                this.currentZoom = 1;
+                this.zoomBehavior = null;
+
+                this.initCanvas();
+                this.initEventListeners();
+                this.startAnimationLoop();
+            }
+
+            initCanvas() {
+                const svg = d3.select('#network-canvas');
+                const container = document.querySelector('.canvas-container');
+                
+                svg.attr('width', container.clientWidth)
+                   .attr('height', container.clientHeight);
+
+                // Create main group for zoom/pan
+                this.mainGroup = svg.append('g').attr('class', 'main-group');
+                
+                // Create groups for better layering
+                this.linkGroup = this.mainGroup.append('g').attr('class', 'links');
+                this.nodeGroup = this.mainGroup.append('g').attr('class', 'nodes');
+                this.labelGroup = this.mainGroup.append('g').attr('class', 'labels');
+                
+                // Setup zoom behavior
+                this.zoomBehavior = d3.zoom()
+                    .scaleExtent([0.1, 4]) // Min 10%, Max 400%
+                    .on('zoom', (event) => {
+                        this.mainGroup.attr('transform', event.transform);
+                        this.currentZoom = event.transform.k;
+                        this.updateZoomLevel();
+                    });
+                
+                svg.call(this.zoomBehavior);
+
+                // Canvas drop zone
+                container.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                });
+
+                container.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    const deviceType = e.dataTransfer.getData('deviceType');
+                    if (deviceType) {
+                        const rect = container.getBoundingClientRect();
+                        const x = e.clientX - rect.left;
+                        const y = e.clientY - rect.top;
+                        this.addDevice(deviceType, x, y);
+                    }
+                });
+
+                // Mouse move for wire preview
+                svg.on('mousemove', (event) => {
+                    if (this.connectionMode && this.connectionSource) {
+                        const [mx, my] = d3.pointer(event);
+                        this.updateWirePreview(mx, my);
+                    }
+                });
+            }
+
+            initEventListeners() {
+                // Device palette drag
+                document.querySelectorAll('.device-item').forEach(item => {
+                    item.addEventListener('dragstart', (e) => {
+                        e.dataTransfer.setData('deviceType', item.dataset.deviceType);
+                    });
+                });
+
+                // Header buttons
+                document.getElementById('btn-templates').addEventListener('click', () => this.showTemplates());
+                document.getElementById('btn-simulation').addEventListener('click', () => this.toggleSimulation());
+                document.getElementById('btn-auto-heal').addEventListener('click', () => this.toggleAutoHeal());
+                document.getElementById('btn-clear').addEventListener('click', () => this.clearNetwork());
+                document.getElementById('btn-export').addEventListener('click', () => this.exportNetwork());
+                document.getElementById('btn-import').addEventListener('click', () => this.importNetwork());
+                document.getElementById('btn-export-image').addEventListener('click', () => this.exportAsImage());
+                
+                // Templates modal
+                document.getElementById('close-templates').addEventListener('click', () => this.hideTemplates());
+                
+                // Zoom controls
+                document.getElementById('zoom-in').addEventListener('click', () => this.zoomIn());
+                document.getElementById('zoom-out').addEventListener('click', () => this.zoomOut());
+                document.getElementById('zoom-reset').addEventListener('click', () => this.zoomReset());
+                
+                // Confirmation modal
+                document.getElementById('confirm-cancel').addEventListener('click', () => this.hideConfirmModal());
+                document.getElementById('confirm-confirm').addEventListener('click', () => this.confirmAction());
+                document.getElementById('confirm-modal').addEventListener('click', (e) => {
+                    if (e.target.id === 'confirm-modal') {
+                        this.hideConfirmModal();
+                    }
+                });
+
+                // Sidebar buttons
+                document.getElementById('btn-add-connection').addEventListener('click', () => this.toggleConnectionMode());
+                document.getElementById('btn-send-packet').addEventListener('click', () => this.sendPacket());
+                document.getElementById('btn-fail-device').addEventListener('click', () => this.simulateFailure());
+                document.getElementById('btn-recover-device').addEventListener('click', () => this.recoverDevice());
+                document.getElementById('btn-create-mesh').addEventListener('click', () => this.createMeshNetwork());
+                document.getElementById('btn-test-all').addEventListener('click', () => this.testAllConnections());
+                document.getElementById('btn-optimize').addEventListener('click', () => this.optimizeNetwork());
+
+                // Device info panel close
+                document.getElementById('close-device-info').addEventListener('click', () => {
+                    document.getElementById('device-info-panel').classList.remove('show');
+                });
+
+                // File input
+                document.getElementById('file-input').addEventListener('change', (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                            try {
+                                const data = JSON.parse(event.target.result);
+                                this.loadNetwork(data);
+                            } catch (err) {
+                                this.log('Error loading network: ' + err.message, 'error');
+                            }
+                        };
+                        reader.readAsText(file);
+                    }
+                });
+
+                // Window resize
+                window.addEventListener('resize', () => {
+                    const container = document.querySelector('.canvas-container');
+                    const svg = d3.select('#network-canvas');
+                    svg.attr('width', container.clientWidth)
+                       .attr('height', container.clientHeight);
+                    this.render();
+                });
+            }
+
+            addDevice(type, x, y) {
+                const device = {
+                    id: `${type}-${++this.deviceCounter[type]}`,
+                    type: type,
+                    x: x,
+                    y: y,
+                    ip: this.generateIP(),
+                    mac: this.generateMAC(),
+                    status: 'online',
+                    interfaces: this.getInterfacesByType(type),
+                    icon: this.getIconByType(type)
+                };
+
+                this.devices.push(device);
+                this.log(`Added ${type}: ${device.id} at (${Math.round(x)}, ${Math.round(y)})`, 'success');
+                this.updateStats();
+                this.updateDeviceSelects();
+                this.render();
+            }
+
+            getIconByType(type) {
+                const icons = {
+                    router: '🔀',
+                    switch: '⚡',
+                    pc: '💻',
+                    server: '🖥️',
+                    cloud: '☁️',
+                    firewall: '🛡️',
+                    ap: '📡'
+                };
+                return icons[type] || '📦';
+            }
+
+            getInterfacesByType(type) {
+                const interfaces = {
+                    router: ['GigabitEthernet0/0', 'GigabitEthernet0/1', 'Serial0/0/0'],
+                    switch: ['FastEthernet0/1', 'FastEthernet0/2', 'FastEthernet0/3', 'FastEthernet0/4'],
+                    pc: ['FastEthernet0'],
+                    server: ['GigabitEthernet0', 'GigabitEthernet1'],
+                    cloud: ['Internet'],
+                    firewall: ['Inside', 'Outside', 'DMZ'],
+                    ap: ['Wireless0', 'Ethernet0', 'Radio0']
+                };
+                return interfaces[type] || ['Port0'];
+            }
+
+            generateIP() {
+                return `192.168.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 254) + 1}`;
+            }
+
+            generateMAC() {
+                return Array.from({length: 6}, () => 
+                    Math.floor(Math.random() * 256).toString(16).padStart(2, '0')
+                ).join(':');
+            }
+
+            toggleConnectionMode() {
+                this.connectionMode = !this.connectionMode;
+                this.connectionSource = null;
+                if (this.wirePath) {
+                    this.wirePath.remove();
+                    this.wirePath = null;
+                }
+                
+                const indicator = document.getElementById('connection-mode');
+                const btn = document.getElementById('btn-add-connection');
+                
+                if (this.connectionMode) {
+                    indicator.classList.add('active');
+                    btn.classList.add('active');
+                    btn.innerHTML = '🔗 Wire Mode ON (Click to Disable)';
+                    this.log('Wire mode enabled. Click devices to connect them.', 'info');
+                } else {
+                    indicator.classList.remove('active');
+                    btn.classList.remove('active');
+                    btn.innerHTML = '🔗 Enable Wire Mode';
+                    this.log('Wire mode disabled.', 'info');
+                }
+            }
+
+            updateWirePreview(mx, my) {
+                if (!this.connectionSource) return;
+
+                const svg = d3.select('#network-canvas');
+                
+                if (!this.wirePath) {
+                    this.wirePath = svg.append('line')
+                        .attr('class', 'connection-wire')
+                        .attr('stroke', '#fbbf24')
+                        .attr('stroke-width', 3)
+                        .attr('stroke-dasharray', '8,4');
+                }
+
+                this.wirePath
+                    .attr('x1', this.connectionSource.x)
+                    .attr('y1', this.connectionSource.y)
+                    .attr('x2', mx)
+                    .attr('y2', my);
+            }
+
+            addConnection(device1, device2) {
+                // Check if connection already exists
+                const exists = this.connections.some(c => 
+                    (c.source === device1 && c.target === device2) ||
+                    (c.source === device2 && c.target === device1)
+                );
+
+                if (exists) {
+                    this.log(`Connection already exists between ${device1.id} and ${device2.id}`, 'warning');
+                    return;
+                }
+
+                const connection = {
+                    id: `conn-${this.connections.length}`,
+                    source: device1,
+                    target: device2,
+                    type: document.getElementById('connection-type').value,
+                    bandwidth: this.getBandwidthByType(document.getElementById('connection-type').value),
+                    latency: Math.random() * 10 + 5,
+                    status: 'active'
+                };
+
+                this.connections.push(connection);
+                this.log(`Connected ${device1.id} ↔ ${device2.id} via ${connection.type}`, 'success');
+                this.updateStats();
+                this.render();
+
+                // Remove wire preview
+                if (this.wirePath) {
+                    this.wirePath.remove();
+                    this.wirePath = null;
+                }
+            }
+
+            getBandwidthByType(type) {
+                const bandwidths = {
+                    ethernet: 1000,
+                    fiber: 10000,
+                    wireless: 300
+                };
+                return bandwidths[type] || 1000;
+            }
+
+            sendPacket() {
+                const sourceId = document.getElementById('packet-source').value;
+                const destId = document.getElementById('packet-dest').value;
+                const type = document.getElementById('packet-type').value;
+                const size = document.getElementById('packet-size').value;
+
+                if (!sourceId || !destId) {
+                    this.log('Please select source and destination devices', 'warning');
+                    return;
+                }
+
+                const source = this.devices.find(d => d.id === sourceId);
+                const dest = this.devices.find(d => d.id === destId);
+
+                if (!source || !dest) {
+                    this.log('Invalid device selection', 'error');
+                    return;
+                }
+
+                // Check if source is healing
+                if (this.healingDevices.has(source.id)) {
+                    this.log(`❌ Cannot send packet: ${sourceId} is currently healing - please wait`, 'warning');
+                    this.showPacketMessage(source.x, source.y, `${sourceId} is healing...`);
+                    return;
+                }
+
+                // Check if destination is healing
+                if (this.healingDevices.has(dest.id)) {
+                    this.log(`❌ Cannot send packet: ${destId} is currently healing - please wait`, 'warning');
+                    this.showPacketMessage(dest.x, dest.y, `${destId} is healing...`);
+                    return;
+                }
+
+                // Check if source is failed
+                if (this.failedDevices.has(source.id)) {
+                    this.log(`❌ Cannot send packet: ${sourceId} has failed`, 'error');
+                    return;
+                }
+
+                // Check if destination is failed
+                if (this.failedDevices.has(dest.id)) {
+                    this.log(`❌ Cannot send packet: ${destId} has failed`, 'error');
+                    return;
+                }
+
+                // Find path using BFS
+                const path = this.findPath(source, dest);
+                
+                if (!path) {
+                    this.log(`No route from ${sourceId} to ${destId}`, 'error');
+                    return;
+                }
+
+                const packet = {
+                    id: `pkt-${++this.packetCounter}`,
+                    source: source,
+                    destination: dest,
+                    type: type,
+                    size: size,
+                    path: path,
+                    currentIndex: 0,
+                    startTime: Date.now(),
+                    position: { x: source.x, y: source.y },
+                    emoji: this.getPacketEmoji(type)
+                };
+
+                this.packets.push(packet);
+                this.log(`📤 Packet ${packet.id} sent: ${sourceId} → ${destId} (${type}, ${size} bytes)`, 'packet');
+                this.showPacketMessage(source.x, source.y, `Packet ${packet.id} sent from ${sourceId}`);
+                this.updateStats();
+                
+                // Create visual packet element
+                this.createPacketElement(packet);
+            }
+
+            getPacketEmoji(type) {
+                const emojis = {
+                    icmp: '📨',
+                    tcp: '📦',
+                    udp: '✉️',
+                    http: '🌐'
+                };
+                return emojis[type] || '📧';
+            }
+
+            createPacketElement(packet) {
+                const container = document.querySelector('.canvas-container');
+                const packetDiv = document.createElement('div');
+                packetDiv.className = 'packet-emoji';
+                packetDiv.id = `packet-${packet.id}`;
+                packetDiv.textContent = packet.emoji;
+                packetDiv.style.left = packet.position.x + 'px';
+                packetDiv.style.top = packet.position.y + 'px';
+                packetDiv.style.transform = 'translate(-50%, -50%)';
+                container.appendChild(packetDiv);
+            }
+
+            showPacketMessage(x, y, message) {
+                const container = document.querySelector('.canvas-container');
+                const msgDiv = document.createElement('div');
+                msgDiv.className = 'packet-message';
+                msgDiv.textContent = message;
+                msgDiv.style.left = (x + 50) + 'px';
+                msgDiv.style.top = (y - 40) + 'px';
+                container.appendChild(msgDiv);
+
+                // Remove after 3 seconds with fade out animation
+                setTimeout(() => {
+                    msgDiv.classList.add('fade-out');
+                    setTimeout(() => {
+                        if (msgDiv.parentNode) {
+                            msgDiv.parentNode.removeChild(msgDiv);
+                        }
+                    }, 300);
+                }, 3000);
+            }
+
+            findPath(source, dest) {
+                // BFS to find shortest path
+                const queue = [[source]];
+                const visited = new Set([source.id]);
+
+                while (queue.length > 0) {
+                    const path = queue.shift();
+                    const node = path[path.length - 1];
+
+                    if (node.id === dest.id) {
+                        return path;
+                    }
+
+                    // Get neighbors
+                    const neighbors = this.getNeighbors(node);
+                    for (const neighbor of neighbors) {
+                        if (!visited.has(neighbor.id) && !this.failedDevices.has(neighbor.id)) {
+                            visited.add(neighbor.id);
+                            queue.push([...path, neighbor]);
+                        }
+                    }
+                }
+
+                return null; // No path found
+            }
+
+            getNeighbors(device) {
+                const neighbors = [];
+                for (const conn of this.connections) {
+                    if (this.failedConnections.has(conn.id)) continue;
+                    
+                    if (conn.source.id === device.id && !this.healingDevices.has(conn.target.id)) {
+                        neighbors.push(conn.target);
+                    } else if (conn.target.id === device.id && !this.healingDevices.has(conn.source.id)) {
+                        neighbors.push(conn.source);
+                    }
+                }
+                return neighbors;
+            }
+
+            simulateFailure() {
+                const deviceId = document.getElementById('fail-device').value;
+                if (!deviceId) {
+                    this.log('Please select a device to fail', 'warning');
+                    return;
+                }
+
+                const device = this.devices.find(d => d.id === deviceId);
+                if (device) {
+                    device.status = 'failed';
+                    this.failedDevices.add(device.id);
+                    this.log(`❌ Device ${deviceId} has failed!`, 'error');
+                    
+                    // Trigger packet rerouting immediately if auto-heal enabled
+                    if (this.autoHealEnabled) {
+                        this.log('🔄 Auto-heal activated - rerouting packets...', 'info');
+                        setTimeout(() => this.autoHealPackets(), 500);
+                        
+                        // Schedule automatic device recovery
+                        this.scheduleDeviceHealing(device);
+                    }
+                    
+                    this.updateStats();
+                    this.render();
+                }
+            }
+
+            scheduleDeviceHealing(device) {
+                // Clear any existing timer for this device
+                if (this.healingTimers.has(device.id)) {
+                    clearTimeout(this.healingTimers.get(device.id));
+                }
+
+                // Mark device as healing
+                this.healingDevices.add(device.id);
+                device.status = 'healing';
+
+                // Schedule automatic recovery
+                const timerId = setTimeout(() => {
+                    if ((device.status === 'failed' || device.status === 'healing') && this.autoHealEnabled) {
+                        device.status = 'online';
+                        this.failedDevices.delete(device.id);
+                        this.healingDevices.delete(device.id);
+                        this.healingTimers.delete(device.id);
+                        
+                        this.log(`✅ Device ${device.id} automatically healed and restored!`, 'success');
+                        this.showPacketMessage(device.x, device.y, `${device.id} restored to service`);
+                        
+                        this.updateStats();
+                        this.updateDeviceSelects();
+                        this.render();
+                    }
+                }, this.healingDelay);
+
+                this.healingTimers.set(device.id, timerId);
+                this.log(`⏱️  Device ${device.id} is now healing - will restore in ${this.healingDelay / 1000} seconds...`, 'info');
+                this.render();
+            }
+
+            recoverDevice() {
+                const deviceId = document.getElementById('fail-device').value;
+                if (!deviceId) {
+                    this.log('Please select a device to recover', 'warning');
+                    return;
+                }
+
+                const device = this.devices.find(d => d.id === deviceId);
+                if (device) {
+                    device.status = 'online';
+                    this.failedDevices.delete(device.id);
+                    this.healingDevices.delete(device.id);
+                    
+                    // Clear any pending auto-heal timer for this device
+                    if (this.healingTimers.has(device.id)) {
+                        clearTimeout(this.healingTimers.get(device.id));
+                        this.healingTimers.delete(device.id);
+                    }
+                    
+                    this.log(`✅ Device ${deviceId} manually recovered`, 'success');
+                    this.updateStats();
+                    this.updateDeviceSelects();
+                    this.render();
+                }
+            }
+
+            autoHealPackets() {
+                document.getElementById('auto-heal-indicator').classList.add('active');
+                this.log('🔄 Auto-healing: Rerouting packets around failures...', 'info');
+
+                let reroutedCount = 0;
+                let droppedCount = 0;
+
+                // Reroute all active packets
+                this.packets.forEach(packet => {
+                    if (packet.currentIndex < packet.path.length - 1) {
+                        const currentNode = packet.path[packet.currentIndex];
+                        const destination = packet.destination;
+                        
+                        // Check if current path is still valid
+                        let pathInvalid = false;
+                        for (let i = packet.currentIndex; i < packet.path.length; i++) {
+                            if (this.failedDevices.has(packet.path[i].id)) {
+                                pathInvalid = true;
+                                break;
+                            }
+                        }
+
+                        if (pathInvalid) {
+                            // Find new path from current position
+                            const newPath = this.findPath(currentNode, destination);
+                            if (newPath) {
+                                packet.path = newPath;
+                                packet.currentIndex = 0;
+                                // Update packet position to current node
+                                packet.position.x = currentNode.x;
+                                packet.position.y = currentNode.y;
+                                this.log(`✓ Packet ${packet.id} rerouted: ${newPath.map(d => d.id).join(' → ')}`, 'success');
+                                reroutedCount++;
+                            } else {
+                                this.log(`✗ Packet ${packet.id} dropped - no alternate path`, 'error');
+                                packet.dropped = true;
+                                droppedCount++;
+                                
+                                // Remove packet element
+                                const packetElement = document.getElementById(`packet-${packet.id}`);
+                                if (packetElement) packetElement.remove();
+                            }
+                        }
+                    }
+                });
+
+                // Remove dropped packets
+                this.packets = this.packets.filter(p => !p.dropped);
+
+                if (reroutedCount > 0 || droppedCount > 0) {
+                    this.log(`🔄 Packet rerouting complete: ${reroutedCount} rerouted, ${droppedCount} dropped`, 'success');
+                }
+
+                setTimeout(() => {
+                    document.getElementById('auto-heal-indicator').classList.remove('active');
+                }, 2000);
+            }
+
+            toggleAutoHeal() {
+                this.autoHealEnabled = !this.autoHealEnabled;
+                const btn = document.getElementById('btn-auto-heal');
+                if (this.autoHealEnabled) {
+                    btn.classList.add('active');
+                    btn.innerHTML = '<span>🔄</span><span>Auto-Heal: ON</span>';
+                    this.log('✅ Auto-healing ENABLED - Failed devices will automatically recover', 'success');
+                    this.log(`⏱️  Healing delay: ${this.healingDelay / 1000} seconds`, 'info');
+                    
+                    // Heal any already-failed devices
+                    const failedDevicesList = Array.from(this.failedDevices);
+                    if (failedDevicesList.length > 0) {
+                        this.log(`🔍 Found ${failedDevicesList.length} failed device(s) - starting healing process...`, 'info');
+                        failedDevicesList.forEach(deviceId => {
+                            const device = this.devices.find(d => d.id === deviceId);
+                            if (device) {
+                                this.scheduleDeviceHealing(device);
+                            }
+                        });
+                    }
+                } else {
+                    btn.classList.remove('active');
+                    btn.innerHTML = '<span>🔄</span><span>Auto-Heal: OFF</span>';
+                    this.log('Auto-healing disabled', 'info');
+                    
+                    // Clear all pending healing timers and reset healing devices
+                    this.healingTimers.forEach(timerId => clearTimeout(timerId));
+                    this.healingTimers.clear();
+                    
+                    // Reset healing devices back to failed state
+                    this.healingDevices.forEach(deviceId => {
+                        const device = this.devices.find(d => d.id === deviceId);
+                        if (device && device.status === 'healing') {
+                            device.status = 'failed';
+                        }
+                    });
+                    this.healingDevices.clear();
+                    
+                    this.render();
+                }
+                this.updateStats();
+            }
+
+            toggleSimulation() {
+                this.simulationRunning = !this.simulationRunning;
+                const btn = document.getElementById('btn-simulation');
+                if (this.simulationRunning) {
+                    btn.classList.add('active');
+                    btn.innerHTML = '<span>⏸️</span><span>Pause Simulation</span>';
+                    this.log('Simulation started', 'success');
+                } else {
+                    btn.innerHTML = '<span>▶️</span><span>Start Simulation</span>';
+                    btn.classList.remove('active');
+                    this.log('Simulation paused', 'info');
+                }
+            }
+
+            createMeshNetwork() {
+                if (this.devices.length < 3) {
+                    this.log('Need at least 3 devices to create a mesh network', 'warning');
+                    return;
+                }
+
+                // Create connections ensuring each device has at least 2 connections
+                const targetDegree = Math.min(3, this.devices.length - 1);
+                
+                for (let i = 0; i < this.devices.length; i++) {
+                    const device = this.devices[i];
+                    const currentConnections = this.getNeighbors(device).length;
+                    
+                    if (currentConnections < targetDegree) {
+                        // Add more connections
+                        const candidates = this.devices.filter(d => 
+                            d.id !== device.id && 
+                            !this.connections.some(c => 
+                                (c.source.id === device.id && c.target.id === d.id) ||
+                                (c.target.id === device.id && c.source.id === d.id)
+                            )
+                        );
+
+                        for (let j = currentConnections; j < targetDegree && j < candidates.length; j++) {
+                            this.addConnection(device, candidates[j]);
+                        }
+                    }
+                }
+
+                this.log(`Created mesh network with ${this.devices.length} devices`, 'success');
+                this.render();
+            }
+
+            testAllConnections() {
+                this.log('🧪 Testing all connections...', 'info');
+                
+                let totalTests = 0;
+                let successfulPaths = 0;
+                
+                for (let i = 0; i < this.devices.length - 1; i++) {
+                    for (let j = i + 1; j < this.devices.length; j++) {
+                        totalTests++;
+                        const path = this.findPath(this.devices[i], this.devices[j]);
+                        if (path) {
+                            this.log(`✓ ${this.devices[i].id} → ${this.devices[j].id}: ${path.length - 1} hops`, 'success');
+                            successfulPaths++;
+                        } else {
+                            this.log(`✗ ${this.devices[i].id} → ${this.devices[j].id}: No route`, 'error');
+                        }
+                    }
+                }
+
+                this.log(`Test complete: ${successfulPaths}/${totalTests} paths accessible`, 'info');
+            }
+
+            optimizeNetwork() {
+                this.log('⚡ Optimizing network topology...', 'info');
+                
+                if (this.devices.length === 0) {
+                    this.log('No devices to optimize', 'warning');
+                    return;
+                }
+
+                // Use force-directed layout to organize devices
+                const simulation = d3.forceSimulation(this.devices)
+                    .force('link', d3.forceLink(this.connections).id(d => d.id).distance(150))
+                    .force('charge', d3.forceManyBody().strength(-500))
+                    .force('center', d3.forceCenter(
+                        document.querySelector('.canvas-container').clientWidth / 2,
+                        document.querySelector('.canvas-container').clientHeight / 2
+                    ))
+                    .stop();
+
+                // Run simulation steps
+                for (let i = 0; i < 300; i++) {
+                    simulation.tick();
+                }
+
+                this.log('Network layout optimized', 'success');
+                this.render();
+            }
+
+            clearNetwork() {
+                this.showConfirmModal(
+                    '🗑️',
+                    'Clear Network?',
+                    'This will delete all devices, connections, and clear the canvas. This action cannot be undone.',
+                    () => {
+                        // Clear all healing timers
+                        this.healingTimers.forEach(timerId => clearTimeout(timerId));
+                        this.healingTimers.clear();
+                        this.healingDevices.clear();
+                        
+                        this.devices = [];
+                        this.connections = [];
+                        this.packets = [];
+                        this.selectedDevice = null;
+                        this.failedDevices.clear();
+                        this.failedConnections.clear();
+                        this.packetCounter = 0;
+                        
+                        // Clear any packet messages and emojis
+                        document.querySelectorAll('.packet-message').forEach(el => el.remove());
+                        document.querySelectorAll('.packet-emoji').forEach(el => el.remove());
+                        
+                        this.log('Network cleared', 'info');
+                        this.updateStats();
+                        this.updateDeviceSelects();
+                        this.render();
+                    }
+                );
+            }
+
+            showConfirmModal(icon, title, message, onConfirm) {
+                document.getElementById('confirm-icon').textContent = icon;
+                document.getElementById('confirm-title').textContent = title;
+                document.getElementById('confirm-message').textContent = message;
+                this.confirmCallback = onConfirm;
+                document.getElementById('confirm-modal').classList.add('show');
+                
+                // Add keyboard support
+                this.confirmKeyHandler = (e) => {
+                    if (e.key === 'Escape') {
+                        this.hideConfirmModal();
+                    } else if (e.key === 'Enter') {
+                        this.confirmAction();
+                    }
+                };
+                document.addEventListener('keydown', this.confirmKeyHandler);
+            }
+
+            hideConfirmModal() {
+                document.getElementById('confirm-modal').classList.remove('show');
+                this.confirmCallback = null;
+                
+                // Remove keyboard handler
+                if (this.confirmKeyHandler) {
+                    document.removeEventListener('keydown', this.confirmKeyHandler);
+                    this.confirmKeyHandler = null;
+                }
+            }
+
+            confirmAction() {
+                if (this.confirmCallback) {
+                    this.confirmCallback();
+                }
+                this.hideConfirmModal();
+            }
+
+            exportNetwork() {
+                const data = {
+                    name: document.getElementById('network-name').value,
+                    devices: this.devices.map(d => ({
+                        id: d.id,
+                        type: d.type,
+                        x: d.x,
+                        y: d.y,
+                        ip: d.ip,
+                        mac: d.mac,
+                        status: d.status
+                    })),
+                    connections: this.connections.map(c => ({
+                        source: c.source.id,
+                        target: c.target.id,
+                        type: c.type,
+                        bandwidth: c.bandwidth,
+                        latency: c.latency
+                    }))
+                };
+
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'network-' + Date.now() + '.json';
+                a.click();
+                URL.revokeObjectURL(url);
+
+                this.log('Network exported successfully', 'success');
+            }
+
+            exportAsImage() {
+                // Create a temporary canvas
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                // Get SVG dimensions
+                const svgElement = document.getElementById('network-canvas');
+                const bbox = svgElement.getBoundingClientRect();
+                canvas.width = bbox.width || 1200;
+                canvas.height = bbox.height || 800;
+                
+                // Set dark background
+                ctx.fillStyle = '#1e293b';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Draw connections (links)
+                this.connections.forEach(conn => {
+                    if (!this.failedConnections.has(conn.id)) {
+                        ctx.strokeStyle = '#475569';
+                        ctx.lineWidth = 2;
+                    } else {
+                        ctx.strokeStyle = '#ef4444';
+                        ctx.lineWidth = 2;
+                        ctx.setLineDash([5, 5]);
+                    }
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(conn.source.x, conn.source.y);
+                    ctx.lineTo(conn.target.x, conn.target.y);
+                    ctx.stroke();
+                    ctx.setLineDash([]); // Reset dash
+                });
+                
+                // Draw devices
+                this.devices.forEach(device => {
+                    // Draw circle
+                    ctx.beginPath();
+                    ctx.arc(device.x, device.y, 30, 0, 2 * Math.PI);
+                    
+                    if (device.status === 'failed') {
+                        ctx.globalAlpha = 0.3;
+                        ctx.fillStyle = '#64748b';
+                    } else {
+                        ctx.globalAlpha = 1.0;
+                        ctx.fillStyle = this.getColorByType(device.type);
+                    }
+                    
+                    ctx.fill();
+                    ctx.strokeStyle = '#cbd5e1';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                    ctx.globalAlpha = 1.0;
+                    
+                    // Draw emoji icon
+                    ctx.font = '24px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillText(device.icon, device.x, device.y);
+                    
+                    // Draw label
+                    ctx.font = 'bold 11px Inter, sans-serif';
+                    ctx.fillStyle = '#cbd5e1';
+                    ctx.fillText(device.id, device.x, device.y + 45);
+                });
+                
+                // Convert to blob and download
+                canvas.toBlob((blob) => {
+                    const link = document.createElement('a');
+                    link.download = 'network-' + Date.now() + '.png';
+                    link.href = URL.createObjectURL(blob);
+                    link.click();
+                    URL.revokeObjectURL(link.href);
+                    
+                    this.log('Network image exported successfully (with connections)', 'success');
+                });
+            }
+
+            importNetwork() {
+                document.getElementById('file-input').click();
+            }
+
+            loadNetwork(data) {
+                this.clearNetwork();
+                
+                document.getElementById('network-name').value = data.name || 'Imported Network';
+
+                // Load devices
+                data.devices.forEach(d => {
+                    const device = {
+                        id: d.id,
+                        type: d.type,
+                        x: d.x,
+                        y: d.y,
+                        ip: d.ip,
+                        mac: d.mac,
+                        status: d.status || 'online',
+                        interfaces: this.getInterfacesByType(d.type),
+                        icon: this.getIconByType(d.type)
+                    };
+                    this.devices.push(device);
+                });
+
+                // Load connections
+                data.connections.forEach(c => {
+                    const source = this.devices.find(d => d.id === c.source);
+                    const target = this.devices.find(d => d.id === c.target);
+                    if (source && target) {
+                        this.connections.push({
+                            id: `conn-${this.connections.length}`,
+                            source: source,
+                            target: target,
+                            type: c.type,
+                            bandwidth: c.bandwidth,
+                            latency: c.latency,
+                            status: 'active'
+                        });
+                    }
+                });
+
+                this.log('Network loaded successfully', 'success');
+                this.updateStats();
+                this.updateDeviceSelects();
+                this.render();
+            }
+
+            updateStats() {
+                document.getElementById('stat-devices').textContent = this.devices.length;
+                document.getElementById('stat-connections').textContent = this.connections.length;
+                
+                const failedAndHealingCount = this.failedDevices.size + this.healingDevices.size;
+                document.getElementById('stat-failed').textContent = `${this.failedDevices.size} (${this.healingDevices.size} healing)`;
+                
+                document.getElementById('stat-packets').textContent = this.packetCounter;
+                document.getElementById('stat-autohealing').textContent = this.autoHealEnabled ? 'Enabled' : 'Disabled';
+
+                // Update network status
+                const statusBadge = document.getElementById('network-status');
+                const failureRate = this.devices.length > 0 ? failedAndHealingCount / this.devices.length : 0;
+                
+                if (failureRate === 0) {
+                    statusBadge.className = 'status-badge healthy';
+                    statusBadge.textContent = 'Healthy';
+                } else if (failureRate < 0.3) {
+                    statusBadge.className = 'status-badge warning';
+                    statusBadge.textContent = 'Warning';
+                } else {
+                    statusBadge.className = 'status-badge critical';
+                    statusBadge.textContent = 'Critical';
+                }
+            }
+
+            updateDeviceSelects() {
+                const sourceSelect = document.getElementById('packet-source');
+                const destSelect = document.getElementById('packet-dest');
+                const failSelect = document.getElementById('fail-device');
+
+                [sourceSelect, destSelect, failSelect].forEach(select => {
+                    const currentValue = select.value;
+                    select.innerHTML = '<option value="">Select Device</option>';
+                    this.devices.forEach(d => {
+                        const option = document.createElement('option');
+                        option.value = d.id;
+                        
+                        let label = `${d.id} (${d.ip})`;
+                        if (d.status === 'healing') {
+                            label += ' - HEALING';
+                        } else if (d.status === 'failed') {
+                            label += ' - FAILED';
+                        }
+                        
+                        option.textContent = label;
+                        select.appendChild(option);
+                    });
+                    select.value = currentValue;
+                });
+            }
+
+            render() {
+                const svg = d3.select('#network-canvas');
+
+                // Render connections
+                const links = this.linkGroup.selectAll('.link')
+                    .data(this.connections, d => d.id);
+
+                links.exit().remove();
+
+                const linkEnter = links.enter()
+                    .append('line')
+                    .attr('class', 'link');
+
+                links.merge(linkEnter)
+                    .attr('x1', d => d.source.x)
+                    .attr('y1', d => d.source.y)
+                    .attr('x2', d => d.target.x)
+                    .attr('y2', d => d.target.y)
+                    .attr('class', d => {
+                        if (this.failedConnections.has(d.id)) return 'link failed';
+                        return 'link active';
+                    });
+
+                // Render devices
+                const nodes = this.nodeGroup.selectAll('.node-group')
+                    .data(this.devices, d => d.id);
+
+                nodes.exit().remove();
+
+                const nodeEnter = nodes.enter()
+                    .append('g')
+                    .attr('class', 'node-group')
+                    .call(d3.drag()
+                        .on('start', (event, d) => this.dragStarted(event, d))
+                        .on('drag', (event, d) => this.dragged(event, d))
+                        .on('end', (event, d) => this.dragEnded(event, d))
+                    );
+
+                nodeEnter.append('circle')
+                    .attr('class', 'node')
+                    .attr('r', 30)
+                    .attr('fill', d => this.getColorByType(d.type))
+                    .attr('stroke', '#cbd5e1')
+                    .attr('stroke-width', 2);
+
+                nodeEnter.append('text')
+                    .attr('class', 'node-icon')
+                    .attr('text-anchor', 'middle')
+                    .attr('dy', '.3em')
+                    .attr('font-size', '24px')
+                    .text(d => d.icon);
+
+                nodeEnter.append('text')
+                    .attr('class', 'node-label')
+                    .attr('text-anchor', 'middle')
+                    .attr('dy', '45')
+                    .attr('font-size', '11px')
+                    .attr('font-weight', '600')
+                    .attr('fill', '#cbd5e1')
+                    .text(d => d.id);
+
+                const nodeUpdate = nodes.merge(nodeEnter);
+
+                nodeUpdate.attr('transform', d => `translate(${d.x},${d.y})`);
+
+                nodeUpdate.select('circle')
+                    .attr('class', d => {
+                        let classes = 'node';
+                        if (d.status === 'failed') classes += ' failed';
+                        if (d.status === 'healing') classes += ' healing';
+                        if (this.selectedDevice && this.selectedDevice.id === d.id) classes += ' selected';
+                        return classes;
+                    })
+                    .attr('fill', d => this.getColorByType(d.type))
+                    .on('click', (event, d) => this.onNodeClick(event, d))
+                    .on('dblclick', (event, d) => this.onNodeDoubleClick(event, d))
+                    .on('mouseover', (event, d) => this.showTooltip(event, d))
+                    .on('mouseout', () => this.hideTooltip());
+
+                // Update labels text (for renamed devices)
+                nodeUpdate.select('.node-label')
+                    .text(d => d.id);
+            }
+
+            getColorByType(type) {
+                const colors = {
+                    router: '#3b82f6',
+                    switch: '#8b5cf6',
+                    pc: '#10b981',
+                    server: '#f59e0b',
+                    cloud: '#06b6d4',
+                    firewall: '#ef4444',
+                    ap: '#ec4899'
+                };
+                return colors[type] || '#64748b';
+            }
+
+            onNodeClick(event, device) {
+                event.stopPropagation();
+                
+                if (this.connectionMode) {
+                    if (!this.connectionSource) {
+                        this.connectionSource = device;
+                        this.log(`Selected ${device.id} as connection source`, 'info');
+                    } else {
+                        if (this.connectionSource.id !== device.id) {
+                            this.addConnection(this.connectionSource, device);
+                        }
+                        this.connectionSource = null;
+                        if (this.wirePath) {
+                            this.wirePath.remove();
+                            this.wirePath = null;
+                        }
+                    }
+                } else {
+                    this.selectedDevice = device;
+                    this.showDeviceInfo(device);
+                    this.render();
+                }
+            }
+
+            onNodeDoubleClick(event, device) {
+                event.stopPropagation();
+                this.showDeviceInfoPanel(device, event.pageX, event.pageY);
+            }
+
+            showDeviceInfoPanel(device, x, y) {
+                const panel = document.getElementById('device-info-panel');
+                const content = document.getElementById('device-info-content');
+                
+                content.innerHTML = `
+                    <input type="text" class="device-name-input" id="device-rename-input" value="${device.id}" placeholder="Enter device name">
+                    <div class="stat-item">
+                        <span class="stat-label">Type</span>
+                        <span class="stat-value">${device.type}</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Status</span>
+                        <span class="stat-value">${device.status}</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">IP Address</span>
+                        <span class="stat-value">${device.ip}</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">MAC Address</span>
+                        <span class="stat-value">${device.mac}</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Connections</span>
+                        <span class="stat-value">${this.getNeighbors(device).length}</span>
+                    </div>
+                    <button class="btn btn-primary" id="save-device-name" style="margin-top: 1rem;">Save Changes</button>
+                `;
+                
+                // Position near device but ensure it's visible
+                const containerRect = document.querySelector('.canvas-container').getBoundingClientRect();
+                let left = device.x + 50;
+                let top = device.y - 150;
+                
+                // Adjust if too close to edges
+                if (left + 320 > containerRect.width) {
+                    left = device.x - 350;
+                }
+                if (top < 0) {
+                    top = 20;
+                }
+                
+                panel.style.left = left + 'px';
+                panel.style.top = top + 'px';
+                panel.classList.add('show');
+                
+                // Focus on input
+                setTimeout(() => {
+                    const input = document.getElementById('device-rename-input');
+                    input.focus();
+                    input.select();
+                    
+                    // Save on Enter key
+                    input.addEventListener('keypress', (e) => {
+                        if (e.key === 'Enter') {
+                            this.renameDevice(device, input.value);
+                        }
+                    });
+                }, 100);
+                
+                // Save button click
+                document.getElementById('save-device-name').addEventListener('click', () => {
+                    const newName = document.getElementById('device-rename-input').value;
+                    this.renameDevice(device, newName);
+                });
+            }
+
+            renameDevice(device, newName) {
+                if (newName && newName.trim() !== '' && newName !== device.id) {
+                    // Check if name already exists
+                    if (this.devices.some(d => d.id === newName && d !== device)) {
+                        this.log(`Device name "${newName}" already exists`, 'error');
+                        return;
+                    }
+                    
+                    const oldName = device.id;
+                    device.id = newName;
+                    this.log(`Renamed device from ${oldName} to ${newName}`, 'success');
+                    this.updateDeviceSelects();
+                    this.render();
+                    this.showDeviceInfo(device);
+                }
+                
+                document.getElementById('device-info-panel').classList.remove('show');
+            }
+
+            showDeviceInfo(device) {
+                const info = document.getElementById('device-info');
+                info.innerHTML = `
+                    <div class="stat-item">
+                        <span class="stat-label">Device ID</span>
+                        <span class="stat-value">${device.id}</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Type</span>
+                        <span class="stat-value">${device.type}</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Status</span>
+                        <span class="stat-value">${device.status}</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">IP Address</span>
+                        <span class="stat-value">${device.ip}</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">MAC Address</span>
+                        <span class="stat-value">${device.mac}</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Connections</span>
+                        <span class="stat-value">${this.getNeighbors(device).length}</span>
+                    </div>
+                    <p style="color: #94a3b8; font-size: 0.75rem; margin-top: 0.5rem; font-style: italic;">
+                        Double-click device to rename
+                    </p>
+                `;
+            }
+
+            showTooltip(event, device) {
+                const tooltip = document.getElementById('tooltip');
+                tooltip.innerHTML = `
+                    <strong>${device.id}</strong><br>
+                    Type: ${device.type}<br>
+                    IP: ${device.ip}<br>
+                    Status: ${device.status}
+                `;
+                tooltip.style.left = (event.pageX + 10) + 'px';
+                tooltip.style.top = (event.pageY + 10) + 'px';
+                tooltip.classList.add('show');
+            }
+
+            hideTooltip() {
+                document.getElementById('tooltip').classList.remove('show');
+            }
+
+            dragStarted(event, d) {
+                d3.select(event.sourceEvent.target.parentNode).raise();
+            }
+
+            dragged(event, d) {
+                d.x = event.x;
+                d.y = event.y;
+                this.render();
+            }
+
+            dragEnded(event, d) {
+                this.render();
+            }
+
+            startAnimationLoop() {
+                const animate = () => {
+                    if (this.simulationRunning && this.packets.length > 0) {
+                        this.updatePackets();
+                    }
+                    requestAnimationFrame(animate);
+                };
+                animate();
+            }
+
+            updatePackets() {
+                const speed = 3; // pixels per frame
+
+                this.packets = this.packets.filter(packet => {
+                    const packetElement = document.getElementById(`packet-${packet.id}`);
+                    
+                    if (packet.currentIndex >= packet.path.length - 1) {
+                        const elapsed = Date.now() - packet.startTime;
+                        this.log(`📥 Packet ${packet.id} delivered to ${packet.destination.id} (${elapsed}ms)`, 'success');
+                        this.showPacketMessage(
+                            packet.destination.x, 
+                            packet.destination.y, 
+                            `✓ Packet ${packet.id} delivered`
+                        );
+                        
+                        // Remove packet element
+                        if (packetElement) {
+                            packetElement.remove();
+                        }
+                        
+                        return false; // Remove delivered packet
+                    }
+
+                    const current = packet.path[packet.currentIndex];
+                    const next = packet.path[packet.currentIndex + 1];
+
+                    if (!next) {
+                        if (packetElement) packetElement.remove();
+                        return false;
+                    }
+
+                    // Calculate direction
+                    const dx = next.x - packet.position.x;
+                    const dy = next.y - packet.position.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    if (distance < speed) {
+                        // Move to next node
+                        packet.currentIndex++;
+                        packet.position.x = next.x;
+                        packet.position.y = next.y;
+                        
+                        if (packet.currentIndex < packet.path.length - 1) {
+                            this.log(`Packet ${packet.id} at ${next.id}`, 'packet');
+                        }
+                    } else {
+                        // Move towards next node
+                        packet.position.x += (dx / distance) * speed;
+                        packet.position.y += (dy / distance) * speed;
+                    }
+
+                    // Update packet element position
+                    if (packetElement) {
+                        packetElement.style.left = packet.position.x + 'px';
+                        packetElement.style.top = packet.position.y + 'px';
+                    }
+
+                    return true; // Keep packet
+                });
+            }
+
+            showTemplates() {
+                const modal = document.getElementById('templates-modal');
+                const grid = document.getElementById('templates-grid');
+                
+                // Clear existing templates
+                grid.innerHTML = '';
+                
+                // Render template cards
+                NETWORK_TEMPLATES.forEach(template => {
+                    const card = document.createElement('div');
+                    card.className = 'template-card';
+                    card.innerHTML = `
+                        <div class="template-icon">${template.icon}</div>
+                        <div class="template-name">${template.name}</div>
+                        <div class="template-description">${template.description}</div>
+                        <div class="template-stats">
+                            <div class="template-stat">
+                                <div class="template-stat-label">Devices</div>
+                                <div class="template-stat-value">${template.devices}</div>
+                            </div>
+                            <div class="template-stat">
+                                <div class="template-stat-label">Links</div>
+                                <div class="template-stat-value">${template.connections}</div>
+                            </div>
+                            <div class="template-stat">
+                                <div class="template-stat-label">Capacity</div>
+                                <div class="template-stat-value">${template.capacity}</div>
+                            </div>
+                        </div>
+                        <div>
+                            <span class="template-badge ${template.type}">${template.type}</span>
+                            <span class="template-badge ${template.category}">${template.category}</span>
+                        </div>
+                    `;
+                    
+                    card.addEventListener('click', () => {
+                        this.loadTemplate(template);
+                        this.hideTemplates();
+                    });
+                    
+                    grid.appendChild(card);
+                });
+                
+                modal.classList.add('show');
+            }
+
+            hideTemplates() {
+                document.getElementById('templates-modal').classList.remove('show');
+            }
+
+            loadTemplate(template) {
+                this.log(`Loading template: ${template.name}...`, 'info');
+                
+                // Clear current network
+                this.healingTimers.forEach(timerId => clearTimeout(timerId));
+                this.healingTimers.clear();
+                this.healingDevices.clear();
+                this.devices = [];
+                this.connections = [];
+                this.packets = [];
+                this.selectedDevice = null;
+                this.failedDevices.clear();
+                this.failedConnections.clear();
+                
+                // Clear visual elements
+                document.querySelectorAll('.packet-message').forEach(el => el.remove());
+                document.querySelectorAll('.packet-emoji').forEach(el => el.remove());
+                
+                // Generate template network
+                const networkData = template.generate();
+                
+                // Load devices
+                networkData.devices.forEach(d => {
+                    const device = {
+                        id: d.id,
+                        type: d.type,
+                        x: d.x,
+                        y: d.y,
+                        ip: this.generateIP(),
+                        mac: this.generateMAC(),
+                        status: 'online',
+                        interfaces: this.getInterfacesByType(d.type),
+                        icon: this.getIconByType(d.type)
+                    };
+                    this.devices.push(device);
+                });
+                
+                // Load connections
+                networkData.connections.forEach(c => {
+                    const source = this.devices.find(d => d.id === c.source);
+                    const target = this.devices.find(d => d.id === c.target);
+                    if (source && target) {
+                        this.connections.push({
+                            id: `conn-${this.connections.length}`,
+                            source: source,
+                            target: target,
+                            type: c.type || 'ethernet',
+                            bandwidth: this.getBandwidthByType(c.type || 'ethernet'),
+                            latency: Math.random() * 10 + 5,
+                            status: 'active'
+                        });
+                    }
+                });
+                
+                document.getElementById('network-name').value = networkData.name;
+                
+                this.log(`✅ Loaded ${template.name}: ${this.devices.length} devices, ${this.connections.length} connections`, 'success');
+                this.log(`💡 Tip: Use zoom controls or scroll to navigate the network!`, 'info');
+                
+                this.updateStats();
+                this.updateDeviceSelects();
+                this.render();
+                
+                // Auto-fit network to screen
+                setTimeout(() => this.zoomReset(), 100);
+            }
+
+            zoomIn() {
+                const svg = d3.select('#network-canvas');
+                const newZoom = Math.min(this.currentZoom * 1.3, 4);
+                svg.transition()
+                    .duration(300)
+                    .call(this.zoomBehavior.scaleTo, newZoom);
+            }
+
+            zoomOut() {
+                const svg = d3.select('#network-canvas');
+                const newZoom = Math.max(this.currentZoom / 1.3, 0.1);
+                svg.transition()
+                    .duration(300)
+                    .call(this.zoomBehavior.scaleTo, newZoom);
+            }
+
+            zoomReset() {
+                const svg = d3.select('#network-canvas');
+                const container = document.querySelector('.canvas-container');
+                
+                if (this.devices.length > 0) {
+                    // Calculate bounds of all devices
+                    const xs = this.devices.map(d => d.x);
+                    const ys = this.devices.map(d => d.y);
+                    const minX = Math.min(...xs) - 100;
+                    const maxX = Math.max(...xs) + 100;
+                    const minY = Math.min(...ys) - 100;
+                    const maxY = Math.max(...ys) + 100;
+                    
+                    const width = maxX - minX;
+                    const height = maxY - minY;
+                    const centerX = (minX + maxX) / 2;
+                    const centerY = (minY + maxY) / 2;
+                    
+                    // Calculate scale to fit
+                    const scale = Math.min(
+                        container.clientWidth / width,
+                        container.clientHeight / height,
+                        1 // Don't zoom in more than 100%
+                    ) * 0.9; // 90% to add padding
+                    
+                    // Calculate translation to center
+                    const translateX = container.clientWidth / 2 - centerX * scale;
+                    const translateY = container.clientHeight / 2 - centerY * scale;
+                    
+                    svg.transition()
+                        .duration(500)
+                        .call(
+                            this.zoomBehavior.transform,
+                            d3.zoomIdentity.translate(translateX, translateY).scale(scale)
+                        );
+                } else {
+                    // Reset to center if no devices
+                    svg.transition()
+                        .duration(500)
+                        .call(this.zoomBehavior.transform, d3.zoomIdentity);
+                }
+            }
+
+            updateZoomLevel() {
+                const zoomPercent = Math.round(this.currentZoom * 100);
+                document.getElementById('zoom-level').textContent = zoomPercent + '%';
+            }
+
+            log(message, type = 'info') {
+                const console = document.getElementById('console');
+                const line = document.createElement('div');
+                line.className = `console-line ${type}`;
+                line.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+                console.appendChild(line);
+                console.scrollTop = console.scrollHeight;
+
+                // Keep only last 100 lines
+                while (console.children.length > 100) {
+                    console.removeChild(console.firstChild);
+                }
+            }
+        }
+
+        // Initialize simulator when DOM is loaded
+        window.addEventListener('DOMContentLoaded', () => {
+            window.simulator = new NetworkSimulator();
+        });
+    </script>
+</body>
+</html>

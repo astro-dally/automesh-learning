@@ -1,0 +1,157 @@
+{
+  "name": "IoT Sensor Mesh Network",
+  "devices": [
+    {
+      "id": "gateway",
+      "type": "router",
+      "x": 500,
+      "y": 300,
+      "ip": "192.168.100.1",
+      "mac": "aa:bb:cc:dd:ee:00",
+      "status": "online"
+    },
+    {
+      "id": "sensor-1",
+      "type": "pc",
+      "x": 350,
+      "y": 200,
+      "ip": "192.168.100.11",
+      "mac": "aa:bb:cc:dd:ee:11",
+      "status": "online"
+    },
+    {
+      "id": "sensor-2",
+      "type": "pc",
+      "x": 650,
+      "y": 200,
+      "ip": "192.168.100.12",
+      "mac": "aa:bb:cc:dd:ee:12",
+      "status": "online"
+    },
+    {
+      "id": "sensor-3",
+      "type": "pc",
+      "x": 300,
+      "y": 350,
+      "ip": "192.168.100.13",
+      "mac": "aa:bb:cc:dd:ee:13",
+      "status": "online"
+    },
+    {
+      "id": "sensor-4",
+      "type": "pc",
+      "x": 700,
+      "y": 350,
+      "ip": "192.168.100.14",
+      "mac": "aa:bb:cc:dd:ee:14",
+      "status": "online"
+    },
+    {
+      "id": "sensor-5",
+      "type": "pc",
+      "x": 400,
+      "y": 450,
+      "ip": "192.168.100.15",
+      "mac": "aa:bb:cc:dd:ee:15",
+      "status": "online"
+    },
+    {
+      "id": "sensor-6",
+      "type": "pc",
+      "x": 600,
+      "y": 450,
+      "ip": "192.168.100.16",
+      "mac": "aa:bb:cc:dd:ee:16",
+      "status": "online"
+    },
+    {
+      "id": "cloud-server",
+      "type": "server",
+      "x": 500,
+      "y": 100,
+      "ip": "203.0.113.10",
+      "mac": "aa:bb:cc:dd:ee:ff",
+      "status": "online"
+    }
+  ],
+  "connections": [
+    {
+      "source": "gateway",
+      "target": "cloud-server",
+      "type": "wireless",
+      "bandwidth": 300,
+      "latency": 15.0
+    },
+    {
+      "source": "gateway",
+      "target": "sensor-1",
+      "type": "wireless",
+      "bandwidth": 300,
+      "latency": 5.5
+    },
+    {
+      "source": "gateway",
+      "target": "sensor-2",
+      "type": "wireless",
+      "bandwidth": 300,
+      "latency": 5.8
+    },
+    {
+      "source": "gateway",
+      "target": "sensor-3",
+      "type": "wireless",
+      "bandwidth": 300,
+      "latency": 6.2
+    },
+    {
+      "source": "gateway",
+      "target": "sensor-4",
+      "type": "wireless",
+      "bandwidth": 300,
+      "latency": 6.0
+    },
+    {
+      "source": "sensor-1",
+      "target": "sensor-2",
+      "type": "wireless",
+      "bandwidth": 300,
+      "latency": 4.5
+    },
+    {
+      "source": "sensor-1",
+      "target": "sensor-3",
+      "type": "wireless",
+      "bandwidth": 300,
+      "latency": 4.8
+    },
+    {
+      "source": "sensor-2",
+      "target": "sensor-4",
+      "type": "wireless",
+      "bandwidth": 300,
+      "latency": 4.6
+    },
+    {
+      "source": "sensor-3",
+      "target": "sensor-5",
+      "type": "wireless",
+      "bandwidth": 300,
+      "latency": 5.1
+    },
+    {
+      "source": "sensor-4",
+      "target": "sensor-6",
+      "type": "wireless",
+      "bandwidth": 300,
+      "latency": 5.0
+    },
+    {
+      "source": "sensor-5",
+      "target": "sensor-6",
+      "type": "wireless",
+      "bandwidth": 300,
+      "latency": 3.5
+    }
+  ]
+}
+
