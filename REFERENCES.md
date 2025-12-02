@@ -311,4 +311,59 @@ Before building the full AutoMesh system, I should be able to:
 
 ---
 
+## 🌐 Additional Real-World Scenarios & Algorithms
+
+### MPLS Fast Reroute (FRR) - Telecommunications Backbone
+
+**[1] MPLS FAST-REROUTE – A PACKET VIEW**
+- URL: https://r2079.wordpress.com/2015/08/08/mpls-fast-reroute-a-packet-view/
+- What it covers: Blog post discussing deployment and implementation differences
+- Useful for: Understanding MPLS FRR packet-level behavior and real-world deployment
+
+**[2] Fast-reroute as a local protection approach over MPLS**
+- URL: https://www.researchgate.net/figure/Fast-reroute-as-a-local-protection-approach-over-MPLS_fig23_282192264
+- What it covers: Research/Technical figure demonstrating the concept
+- Useful for: Visual understanding of MPLS FRR protection mechanisms
+
+**[3] This Week – Deploying MPLS**
+- URL: https://jncie.files.wordpress.com/2011/05/thisweek_deployingmpls.pdf
+- What it covers: Technical document with real-world configuration examples
+- Useful for: Practical MPLS configuration and deployment guidance
+
+### Segment Routing TI-LFA - Cloud Data Center Fabric
+
+**[4] SRv6 TI-LFA: The Ultimate Solution for Fast Rerouting**
+- URL: https://arrcus.com/blog/srv6-ti-lfa-the-ultimate-solution-for-fast-rerouting
+- What it covers: Vendor blog post detailing the benefits and operation
+- Useful for: Understanding TI-LFA advantages and operational details
+
+**[5] ISIS-SR with TI-LFA in OcNOS**
+- URL: https://www.ipinfusion.com/blogs/isis-sr-with-ti-lfa-in-ocnos/
+- What it covers: Technical blog post on implementation and configuration
+- Useful for: Practical TI-LFA configuration examples
+
+**[6] Fast Failover: Techniques and Technologies**
+- URL: https://blog.ipspace.net/2020/12/fast-failover-techniques/
+- What it covers: Blog post comparing LFA, FRR, and TI-LFA
+- Useful for: Understanding differences between fast reroute technologies
+
+### Wireless Sensor Network Self-Healing
+
+**[7] SHR: Self-Healing Routing for wireless ad hoc sensor networks**
+- URL: https://www.cs.rpi.edu/~szymansk/papers/spects07.pdf
+- What it covers: Research paper on a novel self-healing protocol
+- Useful for: Understanding health-aware routing in resource-constrained networks
+
+**[8] Health, link quality and reputation aware routing protocol...**
+- URL: https://ieeexplore.ieee.org/document/6297112/
+- What it covers: Research paper on HLR-AODV (Health/Link Quality/Reputation Aware AODV)
+- Useful for: Learning about multi-metric routing in sensor networks
+
+**[9] Self-healing routing: a study in efficiency and resiliency of...**
+- URL: https://www.spiedigitallibrary.org/conference-proceedings-of-spie/6562/1/Self-healing-routing--a-study-in-efficiency-and-resiliency/10.1117/12.723515.full
+- What it covers: Research on the efficiency of self-healing routing
+- Useful for: Understanding performance metrics and efficiency trade-offs
+
+---
+
 **Remember**: Build incrementally, test often, and don't be afraid to experiment and break things!

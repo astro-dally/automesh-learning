@@ -11,6 +11,7 @@ This guide covers:
 - Network visualization techniques
 - Self-healing mechanisms and fault recovery
 - Custom network building with full control
+- Enterprise-grade network systems with OSPF/ECMP/Dijkstra
 
 ## 📚 Learning Path
 
@@ -64,6 +65,19 @@ Full-featured web-based network simulator with auto-healing capabilities.
 - Network export/import functionality
 - Practice: Build networks, send packets, simulate failures, watch auto-healing in action!
 
+### 9. Final Showdown: OSPF/ECMP/Dijkstra System (09-final-showdown/) ⭐ **LATEST**
+Enterprise-grade university core network with reactive rerouting and minimal service degradation.
+- `index.html` - Interactive network visualization with D3.js
+- `automes_simulation.js` - Complete OSPF/Dijkstra/ECMP implementation
+- Real-time failure detection (~100ms) and automatic rerouting (~500ms)
+- Visual healing paths with traffic particle animation
+- Click-to-fail any device (router, switch, AP, or client)
+- Performance metrics dashboard (detection time, reroute time, packet loss)
+- Mini/full network view toggle
+- Step-by-step Dijkstra algorithm visualization
+- Scenario information modal
+- Practice: Simulate failures, observe self-healing in action, analyze performance metrics!
+
 ## 🚀 Getting Started
 
 ```bash
@@ -87,8 +101,9 @@ python 01-graphs/basic_graph.py
 After completing these examples, I'll have the foundation to build a complete AutoMesh system that:
 - Automatically designs optimal network topologies
 - Visualizes networks in real-time
-- Recovers from node and link failures
+- Recovers from node and link failures with sub-second convergence
 - Exports to simulation tools (Cisco Packet Tracer, Mininet/NS-3)
+- Implements enterprise-grade protocols (OSPF, ECMP, BFD) for production networks
 
 ## 📖 Additional Resources
 
