@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Visualization - OSPF/ECMP/Dijkstra</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-wrapper">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-content">
+                <div class="header-left">
+                    <div class="logo">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M12 2v20M2 12h20"/>
+                        </svg>
+                    </div>
+                    <div class="header-text">
+                        <h1>Network Core</h1>
+                        <p>OSPF • ECMP • Dijkstra Self-Healing</p>
+                    </div>
+                </div>
+                <div class="header-actions">
+                    <button id="scenarioBtn" class="btn btn-ghost">
+                        <span class="btn-icon">📋</span>
+                        <span>Scenario</span>
+                    </button>
+                    <button id="startBtn" class="btn btn-primary">
+                        <span class="btn-icon">▶</span>
+                        <span>Start</span>
+                    </button>
+                    <button id="triggerFailureBtn" class="btn btn-danger" disabled>
+                        <span class="btn-icon">⚠</span>
+                        <span>Fail Router A</span>
+                    </button>
+                    <button id="resetBtn" class="btn btn-ghost">
+                        <span class="btn-icon">↻</span>
+                        <span>Reset</span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Layout -->
+        <div class="app-main">
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <!-- Metrics Section -->
+                <section class="sidebar-section">
+                    <h2 class="section-header">Performance Metrics</h2>
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <div class="metric-header">
+                                <span class="metric-icon">⚡</span>
+                                <span class="metric-name">Detection</span>
+                            </div>
+                            <div class="metric-display">
+                                <span class="metric-value" id="detectionTime">--</span>
+                                <span class="metric-unit">ms</span>
+                            </div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-header">
+                                <span class="metric-icon">🔄</span>
+                                <span class="metric-name">Reroute</span>
+                            </div>
+                            <div class="metric-display">
+                                <span class="metric-value" id="rerouteTime">--</span>
+                                <span class="metric-unit">ms</span>
+                            </div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-header">
+                                <span class="metric-icon">📉</span>
+                                <span class="metric-name">Packet Loss</span>
+                            </div>
+                            <div class="metric-display">
+                                <span class="metric-value" id="packetLoss">--</span>
+                                <span class="metric-unit">%</span>
+                            </div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-header">
+                                <span class="metric-icon">📊</span>
+                                <span class="metric-name">Degradation</span>
+                            </div>
+                            <div class="metric-display">
+                                <span class="metric-value" id="degradation">--</span>
+                                <span class="metric-unit">%</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Status Section -->
+                <section class="sidebar-section">
+                    <h2 class="section-header">System Status</h2>
+                    <div class="info-box">
+                        <p class="info-text">💡 Click any device to fail it</p>
+                        <p class="info-text" style="margin-top: 8px;">🔍 Use Mini View for clearer traffic visualization</p>
+                    </div>
+                    <div class="status-card">
+                        <div class="status-row">
+                            <span class="status-label">State</span>
+                            <span class="status-indicator" id="status">Ready</span>
+                        </div>
+                        <div class="status-row">
+                            <span class="status-label">Phase</span>
+                            <span class="status-value" id="phase">--</span>
+                        </div>
+                        <div class="status-row">
+                            <span class="status-label">Algorithm</span>
+                            <span class="status-value" id="algorithmStatus">--</span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Legend Section -->
+                <section class="sidebar-section">
+                    <h2 class="section-header">Network Legend</h2>
+                    <div class="legend-grid">
+                        <div class="legend-item">
+                            <div class="legend-dot router"></div>
+                            <span>Router</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-dot switch"></div>
+                            <span>Switch</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-dot ap"></div>
+                            <span>Access Point</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-dot client"></div>
+                            <span>Client</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-line ecmp"></div>
+                            <span>ECMP Path</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-line normal"></div>
+                            <span>Normal Link</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-line failed"></div>
+                            <span>Failed Link</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-line healing"></div>
+                            <span>Healing Path</span>
+                        </div>
+                    </div>
+                </section>
+            </aside>
+
+            <!-- Visualization Area -->
+            <main class="visualization-container">
+                <div class="canvas-wrapper">
+                    <div class="view-toggle">
+                        <button id="toggleViewBtn" class="view-toggle-btn">
+                            <span id="viewModeText">Switch to Mini View</span>
+                        </button>
+                    </div>
+                    <div class="zoom-controls">
+                        <button id="zoomIn" class="zoom-btn" title="Zoom In">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="8" y1="3" x2="8" y2="13"/>
+                                <line x1="3" y1="8" x2="13" y2="8"/>
+                            </svg>
+                        </button>
+                        <button id="zoomOut" class="zoom-btn" title="Zoom Out">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="3" y1="8" x2="13" y2="8"/>
+                            </svg>
+                        </button>
+                        <button id="resetZoom" class="zoom-btn" title="Reset Zoom">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="2" y="2" width="12" height="12" rx="1"/>
+                                <path d="M6 6h4v4H6z"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <svg id="networkCanvas" width="1600" height="1000"></svg>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Scenario Modal -->
+    <div id="scenarioModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Network Scenario</h2>
+                <button class="modal-close" id="closeScenarioModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="scenario-content">
+                    <section>
+                        <h3>Overview</h3>
+                        <p>This simulation demonstrates reactive rerouting with minimal service degradation in a redundant enterprise core network. The visualization shows how a university network core handles failures using OSPF (Open Shortest Path First), Dijkstra's algorithm for path calculation, ECMP (Equal-Cost Multi-Path) for load balancing, and BFD (Bidirectional Forwarding Detection) for fast failure detection.</p>
+                    </section>
+
+                    <section>
+                        <h3>Network Topology</h3>
+                        <h4>Core Components</h4>
+                        <ul>
+                            <li><strong>2 Core Routers</strong>: R-A, R-B</li>
+                            <li><strong>2 Core Switches</strong>: S-C, S-D</li>
+                            <li><strong>30 Access Points</strong>: AP-1 through AP-30</li>
+                            <li><strong>100 Clients</strong>: C-1 through C-100</li>
+                        </ul>
+                        <h4>Connectivity</h4>
+                        <ul>
+                            <li><strong>Fully Meshed Core</strong>: R-A ↔ S-C, R-A ↔ S-D, R-B ↔ S-C, R-B ↔ S-D, S-C ↔ S-D</li>
+                            <li><strong>Access Layer</strong>: Each AP connects to both S-C and S-D (redundancy)</li>
+                            <li>Clients connect to APs (approximately 3-4 clients per AP)</li>
+                        </ul>
+                    </section>
+
+                    <section>
+                        <h3>Algorithms and Protocols</h3>
+                        <ul>
+                            <li><strong>OSPF</strong>: Link-state routing protocol that maintains complete network topology</li>
+                            <li><strong>Dijkstra's Algorithm</strong>: Calculates shortest paths and enables fast rerouting</li>
+                            <li><strong>ECMP</strong>: Load balances traffic across multiple equal-cost paths</li>
+                            <li><strong>BFD</strong>: Fast failure detection protocol (detects failures in milliseconds)</li>
+                            <li><strong>Self-Healing Reroute</strong>: Automatically recalculates paths excluding failed nodes</li>
+                        </ul>
+                    </section>
+
+                    <section>
+                        <h3>Failure Scenario</h3>
+                        <h4>Normal Operation</h4>
+                        <ul>
+                            <li>Traffic is load-balanced across R-A and R-B using ECMP</li>
+                            <li>All links are operational (blue/purple for ECMP paths)</li>
+                            <li>Network operates at 100% capacity</li>
+                        </ul>
+                        <h4>Failure Event</h4>
+                        <ul>
+                            <li><strong>Failed Component</strong>: Router A (R-A)</li>
+                            <li>Failed node turns <strong>red</strong>, affected links turn <strong>dashed red</strong></li>
+                        </ul>
+                        <h4>Detection & Healing</h4>
+                        <ul>
+                            <li><strong>BFD Detection</strong>: 0.100 seconds</li>
+                            <li><strong>Dijkstra Recalculation</strong>: Paths recalculated excluding R-A</li>
+                            <li><strong>New Path Highlighting</strong>: Healing paths shown with thick green lines</li>
+                            <li><strong>Time to Reroute</strong>: 0.500 seconds total</li>
+                        </ul>
+                    </section>
+
+                    <section>
+                        <h3>Performance Metrics</h3>
+                        <ul>
+                            <li><strong>Target</strong>: Reduce service degradation by 80% within 5 seconds</li>
+                            <li><strong>Achieved</strong>: Service degradation reduced to ~20% within 0.500 seconds</li>
+                            <li><strong>Time to Detection</strong>: 0.100 seconds (BFD)</li>
+                            <li><strong>Time to Reroute</strong>: 0.500 seconds (total convergence)</li>
+                            <li><strong>Packet Loss</strong>: ~5% (during transition period)</li>
+                            <li><strong>Service Degradation</strong>: ~20% (80% reduction achieved)</li>
+                        </ul>
+                    </section>
+
+                    <section>
+                        <h3>Visualization Features</h3>
+                        <h4>Color Coding</h4>
+                        <ul>
+                            <li><strong>Blue</strong>: Normal routers</li>
+                            <li><strong>Purple</strong>: Normal switches</li>
+                            <li><strong>Orange</strong>: Access points</li>
+                            <li><strong>Gray</strong>: Client devices</li>
+                            <li><strong>Red</strong>: Failed nodes</li>
+                            <li><strong>Red (Dashed)</strong>: Failed links</li>
+                            <li><strong>Green (Thick)</strong>: Healing paths</li>
+                            <li><strong>Purple (Thick)</strong>: ECMP paths</li>
+                        </ul>
+                    </section>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="notificationToast" class="toast">
+        <div class="toast-content">
+            <span class="toast-icon" id="toastIcon">⚠</span>
+            <span class="toast-message" id="toastMessage"></span>
+        </div>
+    </div>
+
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="automes_simulation.js"></script>
+</body>
+</html>
