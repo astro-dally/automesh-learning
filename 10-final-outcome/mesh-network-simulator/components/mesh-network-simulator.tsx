@@ -272,10 +272,12 @@ function createNetwork(): { nodes: NetworkNode[]; links: NetworkLink[] } {
           })
           const node1 = nodes.find((n) => n.id === apId1)
           const node2 = nodes.find((n) => n.id === apId2)
-          if (node1) node1.meshNeighbors = node1.meshNeighbors || []
-          if (node2) node2.meshNeighbors = node2.meshNeighbors || []
-          if (node1) node1.meshNeighbors.push(apId2)
-          if (node2) node2.meshNeighbors.push(apId1)
+          if (node1 && node2) {
+            node1.meshNeighbors = node1.meshNeighbors || [];
+            node2.meshNeighbors = node2.meshNeighbors || [];
+            node1.meshNeighbors.push(apId2);
+            node2.meshNeighbors.push(apId1);
+          }
         }
       }
     }
