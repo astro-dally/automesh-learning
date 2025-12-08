@@ -65,7 +65,7 @@ Full-featured web-based network simulator with auto-healing capabilities.
 - Network export/import functionality
 - Practice: Build networks, send packets, simulate failures, watch auto-healing in action!
 
-### 9. Final Showdown: OSPF/ECMP/Dijkstra System (09-final-showdown/) ⭐ **LATEST**
+### 9. Final Showdown: OSPF/ECMP/Dijkstra System (09-final-showdown/)
 Enterprise-grade university core network with reactive rerouting and minimal service degradation.
 - `index.html` - Interactive network visualization with D3.js
 - `automes_simulation.js` - Complete OSPF/Dijkstra/ECMP implementation
@@ -78,15 +78,61 @@ Enterprise-grade university core network with reactive rerouting and minimal ser
 - Scenario information modal
 - Practice: Simulate failures, observe self-healing in action, analyze performance metrics!
 
+### 10. Final Outcome: Mesh Network Simulator (10-final-outcome/) ⭐ **NEW**
+Production-ready Next.js application with a comprehensive mesh network simulator.
+- `mesh-network-simulator/` - Full-featured React/Next.js application
+- Interactive mesh network visualization with D3.js
+- Real-time protocol message visualization (OSPF, BGP, BFD)
+- Traffic packet animation through network paths
+- Device management (gateway, firewall, router, switch, AP, devices)
+- Network topology builder with drag-and-drop interface
+- Self-healing capabilities with automatic rerouting
+- Performance metrics and network health monitoring
+- Modern UI built with Radix UI and Tailwind CSS
+- Practice: Build complex networks, simulate traffic, test resilience!
+
+### 11. Example: Aircraft Network Simulation (11-example/) ⭐ **NEW**
+Comparative simulation demonstrating centralized vs. mesh network architectures for aircraft communication.
+- `aircraft-network-simulation/` - Next.js application comparing network topologies
+- Side-by-side visualization of centralized and mesh networks
+- Real-time packet routing and latency visualization
+- Failure scenario simulation with automatic recovery
+- Performance comparison metrics (latency, packet loss, recovery time)
+- Event timeline and detailed logging
+- Interactive network diagrams with node tooltips
+- Landing screen with scenario introduction
+- Summary dashboard with comparative analysis
+- Practice: Compare network architectures, analyze failure scenarios, understand trade-offs!
+
 ## 🚀 Getting Started
 
+### Python Examples (Lessons 1-9)
+
 ```bash
-# Install dependencies
+# Install Python dependencies
 pip install -r requirements.txt
 
 # Start with lesson 1
 python 01-graphs/basic_graph.py
 ```
+
+### Next.js Applications (Lessons 10-11)
+
+For the modern web applications, you'll need Node.js and npm/pnpm:
+
+```bash
+# For 10-final-outcome/mesh-network-simulator
+cd 10-final-outcome/mesh-network-simulator
+npm install  # or pnpm install
+npm run dev  # or pnpm dev
+
+# For 11-example/aircraft-network-simulation
+cd 11-example/aircraft-network-simulation
+npm install  # or pnpm install
+npm run dev  # or pnpm dev
+```
+
+Both applications will be available at `http://localhost:3000`
 
 ## 💡 Learning Tips
 
@@ -96,14 +142,26 @@ python 01-graphs/basic_graph.py
 - Each file includes extensive comments explaining concepts
 - Try the suggested experiments at the end of each file
 
-## ✅ What's Next
+## ✅ Project Status
 
-After completing these examples, I'll have the foundation to build a complete AutoMesh system that:
+This learning project has evolved from basic Python examples to full-featured web applications:
+
+**Completed:**
+- ✅ Core Python learning modules (graph theory, optimization, routing, visualization)
+- ✅ Self-healing network implementations
+- ✅ Packet Tracer export functionality
+- ✅ Interactive web simulators (HTML/JavaScript)
+- ✅ Production-ready Next.js applications with modern UI
+- ✅ Comparative network architecture simulations
+
+**What You Can Build:**
+After completing these examples, you'll have the foundation to build a complete AutoMesh system that:
 - Automatically designs optimal network topologies
-- Visualizes networks in real-time
+- Visualizes networks in real-time with interactive interfaces
 - Recovers from node and link failures with sub-second convergence
 - Exports to simulation tools (Cisco Packet Tracer, Mininet/NS-3)
 - Implements enterprise-grade protocols (OSPF, ECMP, BFD) for production networks
+- Compares different network architectures and their trade-offs
 
 ## 📖 Additional Resources
 
