@@ -1,6 +1,6 @@
 'use client'
 
-import * as React from 'react'  // eslint-disable-line no-unused-vars
+import * as React from 'react'
 import {
   ThemeProvider as NextThemesProvider,
   type ThemeProviderProps,

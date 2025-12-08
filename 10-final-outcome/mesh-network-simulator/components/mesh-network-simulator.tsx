@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { Zap, RefreshCw, Wifi, Server, Router, Globe, Shield, Monitor } from "lucide-react"
 
@@ -272,12 +273,10 @@ function createNetwork(): { nodes: NetworkNode[]; links: NetworkLink[] } {
           })
           const node1 = nodes.find((n) => n.id === apId1)
           const node2 = nodes.find((n) => n.id === apId2)
-          if (node1 && node2) {
-            node1.meshNeighbors = node1.meshNeighbors || [];
-            node2.meshNeighbors = node2.meshNeighbors || [];
-            node1.meshNeighbors.push(apId2);
-            node2.meshNeighbors.push(apId1);
-          }
+          if (node1) node1.meshNeighbors = node1.meshNeighbors || []
+          if (node2) node2.meshNeighbors = node2.meshNeighbors || []
+          if (node1 && node1.meshNeighbors) node1.meshNeighbors.push(apId2)
+          if (node2 && node2.meshNeighbors) node2.meshNeighbors.push(apId1)
         }
       }
     }
@@ -1699,62 +1698,96 @@ export default function MeshNetworkSimulator() {
   return (
     <div className="h-screen w-full bg-zinc-950 flex flex-col overflow-hidden">
       {/* Header */}
-      <header className="h-12 border-b border-zinc-800 flex items-center justify-between px-4 shrink-0 bg-zinc-900/80">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center">
-            <Zap className="w-4 h-4 text-emerald-400" />
+      <header className="h-12 bg-zinc-900/95 border-b border-zinc-800 flex items-center justify-between px-4 shrink-0 relative z-50">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 bg-emerald-500/20 rounded-lg flex items-center justify-center">
+            <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
           </div>
-          <span className="font-semibold text-white text-sm">AutoMesh Network</span>
+          <div>
+            <h1 className="text-sm font-semibold text-white">AutoMesh Network</h1>
+            <p className="text-[10px] text-zinc-500">Self-Healing Simulator</p>
+          </div>
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
+          {/* Fixed Learn button - using Next.js Link properly without nested interactivity issues */}
+          <Link
+            href="/learn"
+            prefetch={true}
+            className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-md text-xs text-zinc-300 hover:text-white transition-colors flex items-center gap-1.5 cursor-pointer"
+            onClick={(e) => {
+              e.stopPropagation()
+            }}
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+              />
+            </svg>
+            Learn
+          </Link>
+
+          <div className="flex items-center gap-2 relative z-[100]">
             <span className="text-zinc-500 text-xs">Protocol:</span>
             <Select value={selectedProtocol} onValueChange={(v: keyof typeof PROTOCOLS) => setSelectedProtocol(v)}>
-              <SelectTrigger className="w-28 h-7 bg-zinc-800/50 border-zinc-700 text-xs">
+              <SelectTrigger className="w-28 h-7 bg-zinc-800 border-zinc-600 text-xs hover:bg-zinc-700 focus:ring-1 focus:ring-emerald-500/50">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="bg-zinc-800 border-zinc-700">
+              <SelectContent className="bg-zinc-800 border-zinc-600 z-[200]" position="popper" sideOffset={4}>
                 {Object.entries(PROTOCOLS).map(([key, val]) => (
-                  <SelectItem key={key} value={key} className="text-xs">
-                    {val.name}
+                  <SelectItem key={key} value={key} className="text-xs hover:bg-zinc-700 cursor-pointer">
+                    <span className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full" style={{ backgroundColor: val.color }} />
+                      {val.name}
+                    </span>
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 relative z-[100]">
             <span className="text-zinc-500 text-xs">Algorithm:</span>
             <Select value={selectedAlgorithm} onValueChange={(v: keyof typeof ALGORITHMS) => setSelectedAlgorithm(v)}>
-              <SelectTrigger className="w-36 h-7 bg-zinc-800/50 border-zinc-700 text-xs">
+              <SelectTrigger className="w-36 h-7 bg-zinc-800 border-zinc-600 text-xs hover:bg-zinc-700 focus:ring-1 focus:ring-emerald-500/50">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="bg-zinc-800 border-zinc-700">
+              <SelectContent className="bg-zinc-800 border-zinc-600 z-[200]" position="popper" sideOffset={4}>
                 {Object.entries(ALGORITHMS).map(([key, val]) => (
-                  <SelectItem key={key} value={key} className="text-xs">
-                    {val.name}
+                  <SelectItem key={key} value={key} className="text-xs hover:bg-zinc-700 cursor-pointer">
+                    <span className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full" style={{ backgroundColor: val.color }} />
+                      {val.name}
+                    </span>
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
 
-          <span className="text-xs text-zinc-500">{nodes.filter((n) => n.type === "device").length} devices</span>
+          <div className="h-4 w-px bg-zinc-700" />
 
-          <Badge
-            className={cn(
-              "text-xs",
+          <div className="text-xs text-zinc-400">
+            {nodes.filter((n) => n.type === "device").length} devices · {nodes.filter((n) => n.type === "ap").length}{" "}
+            APs
+          </div>
+
+          <div
+            className={`px-2 py-0.5 rounded text-[10px] font-medium ${
               healingPhase === "healed"
-                ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
-                : healingPhase !== "idle"
-                  ? "bg-amber-500/20 text-amber-400 border-amber-500/30"
-                  : "bg-zinc-700/50 text-zinc-400 border-zinc-600",
-            )}
-            variant="outline"
+                ? "bg-emerald-500/20 text-emerald-400"
+                : healingPhase === "normal"
+                  ? "bg-zinc-700 text-zinc-400"
+                  : "bg-amber-500/20 text-amber-400"
+            }`}
           >
-            {healingPhase === "idle" ? "Ready" : healingPhase.charAt(0).toUpperCase() + healingPhase.slice(1)}
-          </Badge>
+            {healingPhase === "healed" ? "Healed" : healingPhase === "normal" ? "Normal" : "Healing..."}
+          </div>
         </div>
       </header>
 
@@ -1857,8 +1890,10 @@ export default function MeshNetworkSimulator() {
 
           <canvas ref={canvasRef} className="flex-1 w-full min-h-0" />
 
-          <div className="h-32 border-t border-zinc-800 bg-zinc-900/95 shrink-0 flex flex-col overflow-hidden">
-            <div className="px-4 py-2 border-b border-zinc-800 flex items-center justify-between shrink-0">
+          {/* Logs panel with proper horizontal scroll and visible cards */}
+          {/* Logs Panel - Fixed at Bottom */}
+          <div className="h-40 border-t border-zinc-800 bg-zinc-900/95 flex flex-col shrink-0">
+            <div className="px-4 py-1.5 border-b border-zinc-800 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-medium text-white">Healing Timeline</span>
                 <span className="text-[10px] text-zinc-500">
@@ -1874,10 +1909,10 @@ export default function MeshNetworkSimulator() {
                 </Badge>
               )}
             </div>
-            <div className="flex-1 overflow-x-auto overflow-y-hidden">
-              <div className="px-4 py-2 flex gap-3 h-full min-w-max">
+            <div className="flex-1 min-h-0 overflow-x-auto overflow-y-hidden">
+              <div className="px-4 py-2 flex gap-3 h-full min-w-max items-start">
                 {healingEvents.length === 0 ? (
-                  <p className="text-xs text-zinc-500 py-4">
+                  <p className="text-xs text-zinc-500 py-4 whitespace-nowrap">
                     Click a failure button on the left to simulate network healing
                   </p>
                 ) : (
@@ -1885,7 +1920,7 @@ export default function MeshNetworkSimulator() {
                     <div
                       key={idx}
                       className={cn(
-                        "shrink-0 w-56 p-2.5 rounded-lg border text-xs h-full flex flex-col",
+                        "shrink-0 w-56 p-2.5 rounded-lg border text-xs flex flex-col",
                         event.phase === "healed"
                           ? "bg-emerald-500/10 border-emerald-500/30"
                           : "bg-zinc-800/50 border-zinc-700/50",
@@ -1905,12 +1940,10 @@ export default function MeshNetworkSimulator() {
                         >
                           {event.phase.toUpperCase()}
                         </span>
-                        <span className="text-zinc-600 text-[10px]">{event.protocol}</span>
+                        <span className="text-zinc-500 text-[10px]">{event.protocol}</span>
                       </div>
-                      <p className="font-medium text-white text-[11px]">{event.title}</p>
-                      <p className="text-zinc-400 text-[10px] mt-1 leading-relaxed line-clamp-2 flex-1">
-                        {event.description}
-                      </p>
+                      <p className="font-medium text-white text-[11px] mb-0.5">{event.title}</p>
+                      <p className="text-zinc-400 text-[10px] leading-snug">{event.description}</p>
                     </div>
                   ))
                 )}
